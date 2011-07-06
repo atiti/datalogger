@@ -18,7 +18,7 @@ DLAnalog::DLAnalog(uint8_t s0, uint8_t s1, uint8_t s2, uint8_t s3, uint8_t en, u
 	_inp = inp;
 	_pullup = pullup;
 	for(int i=0;i<sizeof(_AOD);i++) {
-		_AOD[i] = 0;
+		_AOD[i] = 1;
 	}
 }
 
@@ -30,14 +30,14 @@ void DLAnalog::disable(){
 	digitalWrite(_en, HIGH);
 }
 
-int DLAnalog::read(int pin){
-	int ret = 0;
+short DLAnalog::read(int pin){
+	short ret = 0;
 	uint8_t mask = 0x1;
 	for(int i=0;i<4;i++) {  // Set up the address for the read
 		if ((pin & (mask << i)) > 0)
 			digitalWrite(_s[i], HIGH);
 		else
-			digitalWrite(s_[i], LOW);
+			digitalWrite(_s[i], LOW);
 	}
 	// Since the analog mux is fast enough, we can already read out
 	// the value without delay
@@ -63,6 +63,6 @@ void DLAnalog::setPin(int pin, int doa){
 	_AOD[pin] = doa;
 }
 
-void debug(int v) {
+void DLAnalog::debug(int v) {
 	_DEBUG = v;
 }

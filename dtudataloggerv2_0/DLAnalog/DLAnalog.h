@@ -1,7 +1,7 @@
 #ifndef DLAnalog_h
 #define DLAnalog_h
 
-#define "WProgram.h"
+#include "WProgram.h"
 
 class DLAnalog
 {
@@ -10,13 +10,13 @@ class DLAnalog
 		void debug(int v);
 		void enable();
 		void disable();
-		int read(int pin);
-		void readAll();
+		short read(int pin);
+		float readAll(unsigned short *vals);
 		void setPin(int pin, int doa);
 	private:
 		uint8_t _en, _inp;
 		bool _pullup;
-		bool _DEBUG;
+		uint8_t _DEBUG;
 		uint8_t _s[4];
 		uint8_t _AOD[16];
 };
