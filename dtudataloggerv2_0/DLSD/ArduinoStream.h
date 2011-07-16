@@ -23,6 +23,7 @@
  * \file
  * \brief ArduinoInStream and ArduinoOutStream classes
  */
+#include <Stream.h>
 #include <bufstream.h>
 //==============================================================================
 /**

@@ -4,7 +4,7 @@ typedef struct
   int value;
 } configuration;
 
-
+/*
 static char* rstrip(char *s) {
   char *p = s + strlen(s);
   while (p > s && isspace(*--p))
@@ -17,4 +17,4 @@ static char* lskip(const char *s) {
     s++;
   return (char *)s;
 }
-
+*/
