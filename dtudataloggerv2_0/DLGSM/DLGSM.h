@@ -9,9 +9,12 @@
 #include <NewSoftSerial.h>
 #include <string.h>
 
-#define GSM_BAUD 19200
+#define GSM_BAUD 9600
 #define GSM_RX 7
 #define GSM_TX 8
+#undef GSM_SW_FLOW
+
+#define GPRS_CONN_TIMEOUT 10  // Connection timeout for gprs
 
 #define GPRSS_IP_INITIAL 0
 #define GPRSS_IP_START 1
@@ -26,7 +29,6 @@
 #define GPRSS_TCP_CLOSED 10
 #define GPRSS_UDP_CLOSED 11
 #define GPRSS_PDP_DEACT 12
-
 
 typedef int (*GSM_callback)(char *, int);
 
@@ -43,11 +45,11 @@ class DLGSM
 {
 	public:
 		DLGSM(void);
-		void init(char *buff, int buffsize, int tout);
-		void debug(int v);
-		int GSM_init();
-		int GSM_process(char *check);
-		int GSM_process(char *check, int tout);
+		void init(char *buff, int buffsize, uint8_t tout);
+		void debug(uint8_t v);
+		uint8_t GSM_init();
+		uint8_t GSM_process(char *check);
+		uint8_t GSM_process(char *check, uint8_t tout);
 		void GSM_send(char b);
 		void GSM_send(int v);
 		void GSM_send(float v);
@@ -55,29 +57,34 @@ class DLGSM
 		void GSM_send(char *msg);
 		void GSM_send(char *msg, int len);
 		void GSM_set_timeout(int tout);
+		void GSM_Xon();
+		void GSM_Xoff();
 		int GSM_recvline(char *ptr, int len);
+		uint8_t GSM_fast_read(char *until);
+		int GSM_recvline_fast(char *ptr, int len);
 		void GSM_request_net_status();
 		void GSM_get_local_time();
 		void GSM_set_callback(GSM_callback fun);
-		int GPRS_init();
-		int GPRS_connect(char *server, int port, bool proto);
-		bool GPRS_send_start();
+		uint8_t GPRS_init();
+		uint8_t GPRS_connect(char *server, short port, bool proto);
+		uint8_t GPRS_send_start();
 		void GPRS_send(char *data);
 		void GPRS_send_raw(char *data, int len);
 		void GPRS_send(float n);
 		void GPRS_send(unsigned long n);
-		bool GPRS_send_end();
-		int GPRS_close();
-		int GPRS_check_conn_state();
-		char CONN_get_flag(char f);
-		void CONN_set_flag(char f, char v);
+		void GPRS_send(int n);
+		uint8_t GPRS_send_end();
+		uint8_t GPRS_close();
+		int8_t GPRS_check_conn_state();
+		uint8_t CONN_get_flag(uint8_t f);
+		void CONN_set_flag(uint8_t f, uint8_t v);
 	private:
 		GSM_callback _gsm_callback;
 		bool _gsminit;
 		char *_gsm_buff;
 		int _gsm_buffsize;
-		int _gsm_tout;
-		int _gsm_ret;
+		uint8_t _gsm_tout;
+		uint8_t _gsm_ret;
 		char _gsm_lac[5];
 		char _gsm_ci[5];
 		Connection _c;

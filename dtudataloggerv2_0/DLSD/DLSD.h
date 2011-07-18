@@ -9,6 +9,11 @@
 #include <SdFat.h>
 #include <string.h>
 
+#define DATALOG 0
+#define SYSLOG 1
+#define CONFIG 2
+#define EVENT 3
+
 #define NUM_FILES 4
 
 class DLSD
@@ -24,8 +29,8 @@ class DLSD
 		bool write(uint8_t n, unsigned short a);
 		bool write(uint8_t n, int a);
 		bool write(uint8_t n, unsigned long a);
-		void read(uint8_t n, char *ptr, int len);
-		void read(uint8_t n, char *ptr, int len, char t);
+		int read(uint8_t n, char *ptr, int len);
+		int read(uint8_t n, char *ptr, int len, char t);
 		void rewind(uint8_t n);
 		bool seek(uint8_t n, uint32_t pos);
 		bool seekend(uint8_t n);

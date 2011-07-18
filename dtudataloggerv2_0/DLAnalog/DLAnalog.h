@@ -3,6 +3,8 @@
 
 #include "WProgram.h"
 
+#define VREF 5.0
+
 class DLAnalog
 {
 	public:
@@ -11,8 +13,9 @@ class DLAnalog
 		void enable();
 		void disable();
 		short read(int pin);
-		float readAll(unsigned short *vals);
-		void setPin(int pin, int doa);
+		float read_all(unsigned short *vals);
+		void set_pin(int pin, int doa);
+		float get_voltage(unsigned short *vals, int pin);
 	private:
 		uint8_t _en, _inp;
 		bool _pullup;

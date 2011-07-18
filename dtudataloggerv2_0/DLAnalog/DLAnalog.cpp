@@ -48,7 +48,7 @@ short DLAnalog::read(int pin){
 	return ret;
 }
 
-float DLAnalog::readAll(unsigned short *vals){
+float DLAnalog::read_all(unsigned short *vals){
 	float starttime = 0;
 	if (_DEBUG)	
 		starttime = millis();
@@ -59,8 +59,13 @@ float DLAnalog::readAll(unsigned short *vals){
 	return 0;		 
 }
 
-void DLAnalog::setPin(int pin, int doa){
+void DLAnalog::set_pin(int pin, int doa){
 	_AOD[pin] = doa;
+}
+
+float DLAnalog::get_voltage(unsigned short *vals, int pin) {
+	float r = (vals[pin] / 1023.0) * VREF;
+	return r;
 }
 
 void DLAnalog::debug(int v) {

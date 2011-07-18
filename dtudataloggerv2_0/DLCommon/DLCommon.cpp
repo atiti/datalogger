@@ -28,3 +28,15 @@ int get_free_memory() {
 	return free_memory;
 }
 
+// Very simple XOR checksum
+int get_checksum(char *string) {
+	int i;
+	int XOR;
+	int c;
+	for (XOR = 0, i = 0; i < strlen(string); i++) {
+		c = (unsigned char)string[i];
+		XOR ^= c;
+	}
+	return XOR;
+}
+

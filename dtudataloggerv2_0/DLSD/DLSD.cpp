@@ -7,7 +7,7 @@ prog_char sd_filename_2[] PROGMEM = "CONFIG.TXT";
 prog_char sd_filename_3[] PROGMEM = "EVENT.TXT";
 
 PROGMEM const char *sd_filename_table[] = {sd_filename_0, sd_filename_1,
-					   sd_filename_2, sd_filename_3};
+                                           sd_filename_2, sd_filename_3};
 
 DLSD::DLSD(bool fullspeed, int CS)
 {
@@ -99,17 +99,23 @@ bool DLSD::write(uint8_t n, unsigned long a) {
 	return _files[n].writeError;
 }
 
-void DLSD::read(uint8_t n, char *ptr, int len) {
-	_files[n].read(ptr, len);
+int DLSD::read(uint8_t n, char *ptr, int len) {
+	return _files[n].read(ptr, len);
 }
 
-void DLSD::read(uint8_t n, char *ptr, int len, char t) {
+int DLSD::read(uint8_t n, char *ptr, int len, char t) {
 	int c = 0;
 	while (c < len) {
 		ptr[c] = _files[n].read();
-		if (ptr[c] < 0 || ptr[c] == t) break;
+		if (ptr[c] < 0 || ptr[c] == t) {
+			if (ptr[c] < 0)
+				return -1;
+			else
+				return 0;
+		}
 		c++;
 	}
+	return 1;
 }
 
 void DLSD::rewind(uint8_t n) {
