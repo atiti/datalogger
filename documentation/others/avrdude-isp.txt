@@ -1,0 +1,2 @@
+avrdude -c stk500v1 -b 19200 -p m328p -P /dev/ttyUSB0
+
