@@ -1,0 +1,14 @@
+#!/bin/bash
+make clean
+make lilypad
+make lilypad_resonator
+make pro8
+make pro16
+make pro20
+make diecimila
+make atmega328
+make sanguino
+make mega
+make atmega8
+make atmega88
+make luminet
