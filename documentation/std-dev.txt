@@ -1,0 +1,8 @@
+According to this, You need to keep three sums: S0=N, S1=Sum of all x, and S2=Sum of all x².
+
+ 
+
+ 
+
+You can then calculate the running standard deviation at any time by as SQRT(S0xS2-S1²)/N
+

@@ -4,10 +4,13 @@
 #include "WProgram.h"
 #include "WConstants.h"
 #include <DLCommon.h>
+#include <avr/wdt.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <NewSoftSerial.h>
 #include <string.h>
+
+#define WATCHDOG 1
 
 #define GSM_BAUD 9600
 #define GSM_RX 7
@@ -30,7 +33,7 @@
 #define GPRSS_UDP_CLOSED 11
 #define GPRSS_PDP_DEACT 12
 
-typedef int (*GSM_callback)(char *, int);
+//typedef int (*GSM_callback)(char *, int);
 
 #define CONN_CONNECTED 0x1
 #define CONN_SENDING 0x2
@@ -60,11 +63,11 @@ class DLGSM
 		void GSM_Xon();
 		void GSM_Xoff();
 		int GSM_recvline(char *ptr, int len);
-		uint8_t GSM_fast_read(char *until);
+		uint8_t GSM_fast_read(char *until, FUN_callback fun);
 		int GSM_recvline_fast(char *ptr, int len);
 		void GSM_request_net_status();
 		void GSM_get_local_time();
-		void GSM_set_callback(GSM_callback fun);
+		void GSM_set_callback(FUN_callback fun);
 		uint8_t GPRS_init();
 		uint8_t GPRS_connect(char *server, short port, bool proto);
 		uint8_t GPRS_send_start();
@@ -79,7 +82,7 @@ class DLGSM
 		uint8_t CONN_get_flag(uint8_t f);
 		void CONN_set_flag(uint8_t f, uint8_t v);
 	private:
-		GSM_callback _gsm_callback;
+		FUN_callback _gsm_callback;
 		bool _gsminit;
 		char *_gsm_buff;
 		int _gsm_buffsize;

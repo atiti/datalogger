@@ -1,0 +1,75 @@
+1. IceFree3 Wind Vane
+	analog DC voltage from conductive plastic potentiometer, 10K ohms 
+	output signal is a ratiometric voltage 
+	potentiometer linearity within 1% 
+	regulated potentiometer excitation of 1 V to 15 V DC 
+
+	heater:
+	24 V AC/DC 
+	Inrush: 8 A maximum
+	Steady state: 1 A at 20 °C (68 °F), 4 A under maximum thermal load (head frozen in clear ice then powered on) 
+
+	Signal Cable
+		red: excitation
+		black: common
+		white: signal
+	Heater Cable
+		black/white: heater power (AC or DC) 
+
+2. IceFree3 Wind Anenometer
+	maximum rated wind speed is 90 m/s (200 miles per hour) 
+	variable amplitude sine wave, frequency proportional to wind speed 
+	m/s = (Hz x 0.572) + 1.00
+	[miles per hour = (Hz x 1.28) + 2.24] 
+	99.7% of sensors fall within 4.3% of stated transfer function (based on over 800 samples) 
+	0 Hz to 155 Hz 
+
+	heater:
+	24 V AC/DC
+	Inrush: 8 A maximum
+	Steady state: 1 A at 20 °C (68 °F), 4 A under maximum thermal load (head frozen in clear ice then powered on) 
+
+	Signal Cable
+		clear: signal
+		black: ground
+		shield drain
+	Heater Cable
+		black / white: heater power (AC/DC)
+
+3. NRG #40C
+	1 m/s to 96 m/s (2.2 mph to 214 mph) (highest recorded) 
+	low level AC sine wave, frequency linearly proportional to windspeed 
+	m/s = (Hz x 0.765) + 0.35
+	[miles per hour = (Hz x 1.711) + 0.78]
+	80 mV (peak to peak) minimum 
+	12 V (peak to peak) typical
+	output amplitude NOT proportional to windspeed
+	0 Hz to 125 Hz (highest recorded) 
+
+
+4. NRG #200P Wind Direction Vane
+	360° mechanical, continuous rotation
+	Analog DC voltage from conductive plastic potentiometer, 10K ohms 
+	Output signal is a ratiometric voltage
+	Regulated potentiometer excitation of 1 V to 15 V DC 
+	potentiometer linearity within 1% 
+
+5. NRG #110S Calibrated Temperature Sensor
+	linear analog voltage
+	Temp = (Voltage x 55.55) - 86.38 °C
+	[Temp = (Voltage x 100) - 123.5 °F]  
+	offset is +/- 0.8 °C (1.4 °F) maximum
+	nonlinearity is +/- 0.33 °C (+/- 0.6 °F) maximum
+	total error +/- 1.1 °C (2 °F) maximum   
+	0 V to 2.5 V DC 
+	PSU: 4 V to 35 V DC 300 µA max. (no load on output) 
+
+6. Relative Humidity Sensor RH5X
+	0 to 100% relative humidity
+	linear analog voltage  
+	% Relative Humidity = Voltage x 20
+	+/- 2% RH from 10% to 90% RH @ 25°C (77°F)
+	+/- 3% RH from 5% to 10% RH and 90% to 95% RH@ 25°C (77°F)
+	0 to 5V for 0 to 100% RH, with a load resistance greater than 10 k ohms  
+	10 V to 30 V DC, 12 V at 2.6 mA typical 
+

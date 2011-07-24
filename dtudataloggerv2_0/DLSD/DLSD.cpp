@@ -1,18 +1,23 @@
 #include "WProgram.h"
 #include "DLSD.h"
 
-prog_char sd_filename_0[] PROGMEM = "DATALOG.TXT";
-prog_char sd_filename_1[] PROGMEM = "SYSTEM.TXT";
-prog_char sd_filename_2[] PROGMEM = "CONFIG.TXT";
-prog_char sd_filename_3[] PROGMEM = "EVENT.TXT";
+prog_char sd_filename_0[] PROGMEM = "CONFIG";
+prog_char sd_filename_1[] PROGMEM = "SYS00000";
+prog_char sd_filename_2[] PROGMEM = "DAT00000";
+prog_char sd_filename_3[] PROGMEM = "EVE00000";
 
 PROGMEM const char *sd_filename_table[] = {sd_filename_0, sd_filename_1,
                                            sd_filename_2, sd_filename_3};
 
-DLSD::DLSD(bool fullspeed, int CS)
+prog_char sd_filename_ext[] PROGMEM = ".DAT";
+
+DLSD::DLSD(bool fullspeed, uint8_t CS)
 {
 	_CS = CS;
+	_inited = 0;
 	_fullspeed = fullspeed;
+	for(uint8_t i = 0; i < NUM_FILES; i++)
+		_files_count[i] = 10;
 }
 
 int8_t DLSD::init() {
@@ -21,14 +26,42 @@ int8_t DLSD::init() {
 		ret = _card.init(SPI_FULL_SPEED, _CS);
 	else
 		ret = _card.init(SPI_HALF_SPEED, _CS);
-	if (!ret) // Failed to initialize card
+	if (!ret) { // Failed to initialize card
+		_inited = -1;
 		return -1;
-	if (!_vol.init(&_card)) // Failed to initialize volume
+	}
+
+	if (!_vol.init(&_card)) { // Failed to initialize volume
+		_inited = -2;
 		return -2;
-	if (!_root.openRoot(&_vol))  // Open the root folder
+	}
+	if (!_root.openRoot(&_vol)) {  // Open the root folder
+		_inited = -3;
 		return -3;
-	
+	}
+	_inited = 1;
 	return 1;
+}
+
+int8_t DLSD::is_available() {
+	return _inited;
+}
+
+void DLSD::pad_filename(char *filename, uint16_t c) {
+	char nums[6];
+	itoa(c, nums, 10);
+	uint8_t a = strlen(nums);
+	for(char i=0;i<a;i++) {
+		filename[8-(a-i)] = nums[i];
+	}	
+}
+
+bool DLSD::increment_file(uint8_t n) {
+	get_from_flash(&(sd_filename_table[n]), _filename);
+	_files_count[n] = _files_count[n] + 1;
+	pad_filename(_filename, _files_count[n]);
+	strcat_P(_filename, sd_filename_ext);
+	return _files[n].rename(&_root, _filename);
 }
 
 void DLSD::debug(int v){
@@ -46,6 +79,9 @@ unsigned long DLSD::open(uint8_t n, uint8_t flags) {
 	}
 	if (_files_open[n] == false) {
 		get_from_flash(&(sd_filename_table[n]), _filename);
+		if (n != 0)
+			pad_filename(_filename, _files_count[n]);
+		strcat_P(_filename, sd_filename_ext);		
 		ret = _files[n].open(&_root, _filename, flags);
 		_files_open[n] = true;
 		fsize = _files[n].fileSize();
@@ -108,13 +144,18 @@ int DLSD::read(uint8_t n, char *ptr, int len, char t) {
 	while (c < len) {
 		ptr[c] = _files[n].read();
 		if (ptr[c] < 0 || ptr[c] == t) {
-			if (ptr[c] < 0)
+			if (ptr[c] < 0) {
+				ptr[c] = 0;
 				return -1;
-			else
+			}
+			else {
+				ptr[c] = 0;
 				return 0;
+			}
 		}
 		c++;
 	}
+	ptr[c] = 0;
 	return 1;
 }
 

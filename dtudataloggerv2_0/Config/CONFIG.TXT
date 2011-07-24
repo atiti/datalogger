@@ -1,0 +1,58 @@
+# Comments are allowed, and so are empty lines
+
+##################################################
+# This is the system id                          #
+# Used to identify the device                    #
+# NOTE: this needs to be unique                  #
+##################################################
+ID = 1
+
+##################################################
+# Shared secret                                  #
+# This is used for authenticating the requests   #
+##################################################
+SECRET = R3dT3st
+
+##################################################
+# GPRS modem configuration                       #
+##################################################
+GPRS_APN = internet
+GPRS_USER = 
+GRPS_PASS = 
+
+##################################################
+# HTTP URLs                                      #
+#                                                #
+##################################################
+HTTP_STATUS_URL = http://attila.patup.com/dl/status.php
+HTTP_UPLOAD_URL = http://attila.patup.com/dl/upload.php
+
+
+##################################################
+# IO CONFIGURATION                               #
+##################################################
+
+PORT_NAME_0 = Anenometer
+PORT_FUNCT_0 = Digital
+PORT_MODE_0 = Counter
+
+PORT_NAME_1 = Wind Vane
+PORT_FUNCT_1 = Analog
+PORT_MODE_1 = Value
+
+PORT_NAME_2 = Humidity
+PORT_FUNCT_2 = Analog
+PORT_MODE_2 = Value
+
+PORT_NAME_3 = External Temperature
+PORT_FUNCT_3 = Analog
+PORT_MODE_3 = Value
+
+PORT_NAME_7 = Internal Temperature
+PORT_FUNCT_7 = Analog
+PORT_MODE_7 = Value
+
+
+
+
+

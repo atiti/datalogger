@@ -3,7 +3,6 @@
 
 #define Pchar prog_char PROGMEM
 
-
 #define GSM_INIT_LEN 7
 Pchar gsm_init_string_0[] = "AT\r\n";
 Pchar gsm_init_string_1[] = "ATE0\r\n";
@@ -17,8 +16,8 @@ Pchar gsm_init_string_4[] = "AT+CSQ\r\n";
 Pchar gsm_init_string_5[] = "AT+CREG=2\r\n";
 Pchar gsm_init_string_6[] = "AT+CGREG=2\r\n";
 PROGMEM const char *gsm_init_string_table[] = { gsm_init_string_0, gsm_init_string_1, gsm_init_string_2,
-						gsm_init_string_3, gsm_init_string_4, gsm_init_string_5,
-						gsm_init_string_6 };
+                                                gsm_init_string_3, gsm_init_string_4, gsm_init_string_5,
+                                                gsm_init_string_6 };
 
 #define GPRS_INIT_ATTACH_CMD 9
 #define GPRS_INIT_LEN 12
@@ -37,10 +36,10 @@ Pchar gprs_init_string_10[] = "AT+CIFSR\r\n";
 Pchar gprs_init_string_11[] = "AT+CIPSEND?\r\n"; //CDNSCFG=\"8.8.8.8\",\"8.8.8.4\"\r\n";
 
 PROGMEM const char *gprs_init_string_table[] = { gprs_init_string_0, gprs_init_string_1, gprs_init_string_2,
-						 gprs_init_string_3, gprs_init_string_4, gprs_init_string_5,
-						 gprs_init_string_6, gprs_init_string_7, gprs_init_string_8,
-						 gprs_init_string_9, gprs_init_string_10, gprs_init_string_11 };
-
+                                                 gprs_init_string_3, gprs_init_string_4, gprs_init_string_5,
+                                                 gprs_init_string_6, gprs_init_string_7, gprs_init_string_8,
+                                                 gprs_init_string_9, gprs_init_string_10, gprs_init_string_11 
+};
 
 prog_char gsm_string_0[] PROGMEM = "\r\nATE0\r\n";
 prog_char gsm_string_1[] PROGMEM = "AT+GOI\r\n";
@@ -90,21 +89,21 @@ Pchar gprs_state_12[] = "PDP DEACT";
 PROGMEM const char *gprs_state_table[] = { gprs_state_0, gprs_state_1, gprs_state_2,
                                            gprs_state_3, gprs_state_4, gprs_state_5,
                                            gprs_state_6, gprs_state_7, gprs_state_8,
-					   gprs_state_9, gprs_state_10, gprs_state_11,
-					   gprs_state_12 };
+                                           gprs_state_9, gprs_state_10, gprs_state_11,
+                                           gprs_state_12 };
 #define PRINTDBG(a, v) if (a) { \
-			Serial.print(v); \
-			} \
+                        Serial.print(v); \
+                        } \
 
 NewSoftSerial _gsmserial(GSM_RX, GSM_TX);
 
 DLGSM::DLGSM()
 {
-	for(uint8_t k=0;k<5;k++) {
-		_gsm_lac[k] = 0;
-		_gsm_ci[k] =  0;
-	}
-	_gsm_callback = NULL;
+        for(uint8_t k=0;k<5;k++) {
+                _gsm_lac[k] = 0;
+                _gsm_ci[k] =  0;
+        }
+        _gsm_callback = NULL;
 }
                 
 void DLGSM::debug(uint8_t v) {
@@ -135,6 +134,9 @@ void DLGSM::init(char *buff, int buffsize, uint8_t tout = 10) {
 
 uint8_t DLGSM::GSM_init() {
 	for(int k=0;k<GSM_INIT_LEN;k++) {
+#ifdef WATCHDOG
+		wdt_reset();
+#endif
 		get_from_flash(&(gsm_init_string_table[k]), _gsm_buff);
 		GSM_send(_gsm_buff);
 		_gsm_ret = GSM_process("OK");	
@@ -148,6 +150,9 @@ uint8_t DLGSM::GSM_process(char *check) {
 	int i = 0, a = 0, nr = _gsm_tout, bs = 0;
 	uint8_t ret = 0;
 	do {
+#ifdef WATCHDOG
+		wdt_reset();
+#endif
 		a = _gsmserial.available();
 		if (a) {
 			nr = _gsm_tout;
@@ -192,7 +197,7 @@ uint8_t DLGSM::GSM_process(char *check, uint8_t tout) {
 	return r;
 }
 
-uint8_t DLGSM::GSM_fast_read(char *until) {
+uint8_t DLGSM::GSM_fast_read(char *until, FUN_callback fun) {
 	int b = 0, cdown = 100;
 	while (1) {
 #ifdef GSM_SW_FLOW
@@ -204,7 +209,10 @@ uint8_t DLGSM::GSM_fast_read(char *until) {
 #endif
 		if (b) {
 			cdown = 100;	
-			Serial.print(_gsm_buff);
+			if (fun)
+				fun(_gsm_buff, b);
+			if (_DEBUG)		
+				Serial.print(_gsm_buff);
 			if (strstr(_gsm_buff, until) != 0)
 				break;
 		} else {
@@ -339,12 +347,15 @@ void DLGSM::GSM_request_net_status() {
 void DLGSM::GSM_get_local_time() {
 }
 
-void DLGSM::GSM_set_callback(GSM_callback fun) {
+void DLGSM::GSM_set_callback(FUN_callback fun) {
 	_gsm_callback = fun;
 }
                 
 uint8_t DLGSM::GPRS_init() {
 	for(uint8_t k=0;k<GPRS_INIT_LEN;k++) {
+#ifdef WATCHDOG
+		wdt_reset();
+#endif
 		if (k == GPRS_INIT_ATTACH_CMD)
 			GSM_set_timeout(50);
 		get_from_flash(&(gprs_init_string_table[k]), _gsm_buff);
@@ -379,6 +390,9 @@ uint8_t DLGSM::GPRS_connect(char *server, short port, bool proto) {
 	GSM_send("\"\r\n");
 	uint8_t s = GSM_process("CONNECT OK", 30);
 	for(int wait=GPRS_CONN_TIMEOUT;wait>0;wait--) {
+#ifdef WATCHDOG
+		wdt_reset();
+#endif
 		s = GPRS_check_conn_state();
 		if (s == GPRSS_CONNECT_OK)
 			break;
@@ -446,6 +460,9 @@ uint8_t DLGSM::GPRS_close() {
 int8_t DLGSM::GPRS_check_conn_state() {
 	uint8_t k = 0;
 	char d[15];
+#ifdef WATCHDOG
+	wdt_reset();
+#endif
 	get_from_flash(&(gsm_string_table[17]), _gsm_buff);
 	GSM_send(_gsm_buff);
 	GSM_process(NULL);

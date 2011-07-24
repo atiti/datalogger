@@ -2,6 +2,7 @@
 #include <DLCommon.h>
 #include <DLGSM.h>
 #include <DLHTTP.h>
+#include <Time.h>
 
 #define SYSLOG 1
 
@@ -22,13 +23,41 @@ void setup() {
   http.init(buffer, &gsm);
   gsm.debug(1);
 }
+
+void printDigits(int digits){
+  // utility function for digital clock display: prints preceding colon and leading 0
+  Serial.print(":");
+  if(digits < 10)
+    Serial.print('0');
+  Serial.print(digits);
+}
+
+void digitalClockDisplay(){
+  // digital clock display of the time
+  Serial.print(day());
+  Serial.print("-");
+  Serial.print(month());
+  Serial.print("-");
+  Serial.print(year());
+  Serial.print(" ");
+  Serial.print(hour());
+  printDigits(minute());
+  printDigits(second());
+  Serial.println();
+}
+
 void loop() {
   strcpy(buffer2, "http://attila.patup.com/test.php?id=1");
   uint8_t ret = http.GET(buffer2);
   Serial.print("HTTP Request: ");
-  Serial.println(ret);
+  Serial.println(ret, DEC);
+  //unsigned long t = HTTP_get_time();
+  //setTime(t);
+  digitalClockDisplay();
   Serial.print("Free memory: ");
   Serial.println(get_free_memory());
+  int memory = memory_test();
+  Serial.println(memory);
   //http.POST("abcdefghijkl");
   //http.POST_end();
   delay(1000);

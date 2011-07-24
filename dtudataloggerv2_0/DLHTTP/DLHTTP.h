@@ -9,8 +9,6 @@
 #include <string.h>
 #include <DLGSM.h>
 
-
-
 class DLHTTP
 {
 	public:
@@ -25,6 +23,7 @@ class DLHTTP
 		uint8_t POST_start(char *url, int cl);
 		void POST(char *data);
 		uint8_t POST_end();
+		void process_reply();
 	private:
 		DLGSM *_gsm;
 		char *_http_buff;
