@@ -1,5 +1,6 @@
 #include "WProgram.h"
 #include "DLHTTP.h"
+#include <DS1307RTC.h>
 
 #define Pchar prog_char PROGMEM
 
@@ -8,16 +9,21 @@ Pchar header_string_0[] = "Connection: close\r\n";
 //Pchar header_string_1[] = "Content-Type: application/x-www-form-urlencoded\r\n";
 PROGMEM const char *header_string_table[] = { header_string_0 };
 
+uint8_t backend_err = 999;
+
 int HTTP_process_reply(char *line, int len) {
 	if (line[0] == 'T' && line[1] == 'S') { // Get the unix timestamp from server
-		if (strlen(line+3) >= 10)
+		if (strlen(line+3) >= 10) {
 			setTime(atol(line+3));
+		}
+	} else if (line[0] == 'E' && line[1] == 'R') { // ERR code
+		backend_err = atoi(line+4);
 	}
 }
 
 DLHTTP::DLHTTP()
 {
-
+	_backend_err = &backend_err;
 }
 
 void DLHTTP::init(char *http_buff, DLGSM *ptr) {
@@ -28,18 +34,23 @@ void DLHTTP::init(char *http_buff, DLGSM *ptr) {
 
 uint8_t DLHTTP::backend_start(char *host, uint16_t port) {
 	int s = 0;
+	uint8_t j = 0;
+	_gsm->pwr_on();
+	backend_err = 999;
+	for(j=0;j<10;j++) {
 #ifdef WATCHDOG
-	wdt_reset();
+		wdt_reset();
 #endif
-
-	s = _gsm->GPRS_check_conn_state();
-	if (s >= GPRSS_IP_STATUS && s < GPRSS_PDP_DEACT) {
-		s = _gsm->GPRS_connect(host, port, true);
-		if (s == GPRSS_CONNECT_OK) {
-			_gsm->GPRS_send_start();
-			return 1;	
+		s = _gsm->GPRS_check_conn_state();
+		if (s >= GPRSS_IP_STATUS && s < GPRSS_PDP_DEACT) {
+			s = _gsm->GPRS_connect(host, port, true);
+			if (s == GPRSS_CONNECT_OK) {
+				_gsm->GPRS_send_start();
+				return 1;	
+			}
 		}
-	}
+		delay(10);
+	} 
 	return 0;
 }
 
@@ -48,6 +59,10 @@ uint8_t DLHTTP::backend_end() {
 	uint8_t s = 0;
 	s = _gsm->GPRS_close();
 	return s;
+}
+
+uint8_t DLHTTP::get_err_code() {
+	return (*_backend_err);
 }
 
 void DLHTTP::parse_url(char *url, char **host, char **query_string) {
@@ -68,6 +83,7 @@ uint8_t DLHTTP::GET(char *url) {
 		return 0;
 	get_from_flash_P(PSTR("GET /"), _http_buff);
 	_gsm->GPRS_send(_http_buff);
+	Serial.println(query_string);
 	_gsm->GPRS_send(query_string);     // Send the head of the request
 	get_from_flash_P(PSTR(" HTTP/1.1\r\n"), _http_buff);
 	_gsm->GPRS_send(_http_buff);
@@ -121,16 +137,30 @@ uint8_t DLHTTP::POST_start(char *url, int cl) {
 	return 1;
 }
 
-void DLHTTP::POST(char *data) {
+void DLHTTP::POST(char *data, int len) {
 	if (data) {
 		if (_sent == 0)
+			_gsm->GPRS_send_start();
+		_sent += len;
+		if (_sent > _gsm->GPRS_send_get_size()) {
+			Serial.println("Data exceed.");
+			_gsm->GPRS_send_end();
+			_sent = len;
+			_gsm->GPRS_send_start();
+		}
+		Serial.print("Sent: ");
+		Serial.println(_sent, DEC);
+		_gsm->GPRS_send_raw(data, len);
+			
+/*		if (_sent == 0)
 			_gsm->GPRS_send_start();	
-		_gsm->GPRS_send(data);
-		_sent += strlen(data);
+		_gsm->GPRS_send_raw(data, len);
+		_sent += len;
 		if (_sent >= 1000) {
 			_gsm->GPRS_send_end();
 			_sent = 0;
 		}
+*/
 	}
 }
 

@@ -4,6 +4,7 @@
 #include "WProgram.h"
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
+#include <EEPROM.h>
 #include "WConstants.h"
 #include <DLCommon.h>
 #include <DLSD.h>
@@ -11,6 +12,10 @@
 
 typedef struct {
 	uint16_t id;
+	uint8_t http_status_time;
+	uint8_t http_upload_time;
+	uint8_t measure_time;
+	uint16_t measure_length;
 //	char secret[8];
 //	char GPRS_apn[15];
 //	char GPRS_user[10];
@@ -24,9 +29,15 @@ class DLConfig
 {
 	public:
 		DLConfig();
-		void init(Config *config, DLSD *sd, DLAnalog *analog, char *buff, int len);
+		void init(DLSD *sd, DLAnalog *analog, char *buff, int len);
 		int log_process_callback(char *line, int len);
 		uint8_t load();
+		uint8_t load_EEPROM(uint16_t addr, char *data, int len);
+		uint8_t save_EEPROM(uint16_t addr, char *data, int len);
+		uint8_t sync_EEPROM(uint16_t addr, char *data, int len);		
+		uint8_t save_files_count(uint8_t saved);
+		uint8_t load_files_count(uint8_t saved);
+		Config* get_config();
 	private:
 		Config *_config;
 		DLSD *_sd;

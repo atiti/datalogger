@@ -12,6 +12,7 @@
 
 #define WATCHDOG 1
 
+#define GSM_PWR 9
 #define GSM_BAUD 9600
 #define GSM_RX 7
 #define GSM_TX 8
@@ -33,10 +34,10 @@
 #define GPRSS_UDP_CLOSED 11
 #define GPRSS_PDP_DEACT 12
 
-//typedef int (*GSM_callback)(char *, int);
-
 #define CONN_CONNECTED 0x1
 #define CONN_SENDING 0x2
+#define CONN_NETWORK 0x4
+#define CONN_PWR 0x8
 
 typedef struct {
 	uint8_t ip[4];
@@ -48,6 +49,8 @@ class DLGSM
 {
 	public:
 		DLGSM(void);
+		void pwr_off();
+		void pwr_on();
 		void init(char *buff, int buffsize, uint8_t tout);
 		void debug(uint8_t v);
 		uint8_t GSM_init();
@@ -70,6 +73,7 @@ class DLGSM
 		void GSM_set_callback(FUN_callback fun);
 		uint8_t GPRS_init();
 		uint8_t GPRS_connect(char *server, short port, bool proto);
+		uint16_t GPRS_send_get_size();
 		uint8_t GPRS_send_start();
 		void GPRS_send(char *data);
 		void GPRS_send_raw(char *data, int len);
@@ -81,6 +85,8 @@ class DLGSM
 		int8_t GPRS_check_conn_state();
 		uint8_t CONN_get_flag(uint8_t f);
 		void CONN_set_flag(uint8_t f, uint8_t v);
+		char* GSM_get_lac();
+		char* GSM_get_ci();
 	private:
 		FUN_callback _gsm_callback;
 		bool _gsminit;
@@ -90,6 +96,7 @@ class DLGSM
 		uint8_t _gsm_ret;
 		char _gsm_lac[5];
 		char _gsm_ci[5];
+		uint16_t _sendsize;
 		Connection _c;
 		uint8_t _DEBUG;
 };

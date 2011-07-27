@@ -3,87 +3,67 @@
 
 #define Pchar prog_char PROGMEM
 
-#define GSM_INIT_LEN 7
+#define GSM_INIT_LEN 4
 Pchar gsm_init_string_0[] = "AT\r\n";
 Pchar gsm_init_string_1[] = "ATE0\r\n";
-#ifdef GSM_SW_FLOW
-Pchar gsm_init_string_2[] = "AT+IFC=1,0\r\n";
-#else
-Pchar gsm_init_string_2[] = "AT+GOI\r\n";
-#endif
-Pchar gsm_init_string_3[] = "AT+IPR=9600\r\n";
-Pchar gsm_init_string_4[] = "AT+CSQ\r\n";
-Pchar gsm_init_string_5[] = "AT+CREG=2\r\n";
-Pchar gsm_init_string_6[] = "AT+CGREG=2\r\n";
+//#ifdef GSM_SW_FLOW
+//Pchar gsm_init_string_2[] = "AT+IFC=1,0\r\n";
+//#else
+//Pchar gsm_init_string_2[] = "AT+GOI\r\n";
+//#endif
+//Pchar gsm_init_string_3[] = "AT+IPR=9600\r\n";
+//Pchar gsm_init_string_4[] = "AT+CSQ\r\n";
+Pchar gsm_init_string_2[] = "AT+CREG=2\r\n";
+Pchar gsm_init_string_3[] = "AT+CGREG=2\r\n";
 PROGMEM const char *gsm_init_string_table[] = { gsm_init_string_0, gsm_init_string_1, gsm_init_string_2,
-                                                gsm_init_string_3, gsm_init_string_4, gsm_init_string_5,
-                                                gsm_init_string_6 };
+                                                gsm_init_string_3 }; ///,
+                                                //gsm_init_string_6 };
 
 #define GPRS_INIT_ATTACH_CMD 9
-#define GPRS_INIT_LEN 12
-Pchar gprs_init_string_0[] = "AT+CGACT?\r\n";
-Pchar gprs_init_string_1[] = "AT+CGREG?\r\n";
-Pchar gprs_init_string_2[] = "AT+CIPSHUT\r\n"; //+CGATT=1\r\n"; //+CIPCSGP=1,\"internet.bibob.dk\"\r\n";
-Pchar gprs_init_string_3[] = "AT+CIPMODE=0\r\n"; //AT+CDNSCFG=\"8.8.8.8\",\"8.8.8.4\"\r\n";
-Pchar gprs_init_string_4[] = "AT+CGATT=1\r\n";
-Pchar gprs_init_string_5[] = "AT+CGDCONT=1,\"IP\",\"internet\"\r\n";
+#define GPRS_INIT_LEN 10
+#define GPRS_INIT_NONTWR_LEN 2
+//Pchar gprs_init_string_0[] = "AT+CGACT?\r\n";
+Pchar gprs_init_string_0[] = "AT+CGREG?\r\n";
+Pchar gprs_init_string_1[] = "AT+CIPSHUT\r\n"; //+CGATT=1\r\n"; //+CIPCSGP=1,\"internet.bibob.dk\"\r\n";
+Pchar gprs_init_string_2[] = "AT+CIPMODE=0\r\n"; //AT+CDNSCFG=\"8.8.8.8\",\"8.8.8.4\"\r\n";
+Pchar gprs_init_string_3[] = "AT+CGATT=1\r\n";
+Pchar gprs_init_string_4[] = "AT+CGDCONT=1,\"IP\",\"internet\"\r\n";
 //Pchar gprs_init_string_5[] = "AT+CIPCSGP=1,\"internet.bibob.dk\"\r\n";
-Pchar gprs_init_string_6[] = "AT+CLPORT=\"TCP\",\"2020\"\r\n";
-Pchar gprs_init_string_7[] = "AT+CSTT=\"internet\",\"\",\"\"\r\n";
-Pchar gprs_init_string_8[] = "AT+CIPSRIP=1\r\n";
-Pchar gprs_init_string_9[] = "AT+CIICR\r\n";
-Pchar gprs_init_string_10[] = "AT+CIFSR\r\n";
-Pchar gprs_init_string_11[] = "AT+CIPSEND?\r\n"; //CDNSCFG=\"8.8.8.8\",\"8.8.8.4\"\r\n";
+Pchar gprs_init_string_5[] = "AT+CLPORT=\"TCP\",\"2020\"\r\n";
+Pchar gprs_init_string_6[] = "AT+CSTT=\"internet\",\"\",\"\"\r\n";
+Pchar gprs_init_string_7[] = "AT+CIPSRIP=1\r\n";
+Pchar gprs_init_string_8[] = "AT+CIICR\r\n";
+Pchar gprs_init_string_9[] = "AT+CIFSR\r\n";
 
 PROGMEM const char *gprs_init_string_table[] = { gprs_init_string_0, gprs_init_string_1, gprs_init_string_2,
                                                  gprs_init_string_3, gprs_init_string_4, gprs_init_string_5,
                                                  gprs_init_string_6, gprs_init_string_7, gprs_init_string_8,
-                                                 gprs_init_string_9, gprs_init_string_10, gprs_init_string_11 
-};
+                                                 gprs_init_string_9 };
 
-prog_char gsm_string_0[] PROGMEM = "\r\nATE0\r\n";
-prog_char gsm_string_1[] PROGMEM = "AT+GOI\r\n";
-prog_char gsm_string_2[] PROGMEM = "AT+CREG=2\r\n";
-prog_char gsm_string_3[] PROGMEM = "AT+CGREG=2\r\n";
-prog_char gsm_string_4[] PROGMEM = "AT+CGREG?\r\n";
-prog_char gsm_string_5[] PROGMEM = "AT+CGATT?\r\n";
-prog_char gsm_string_6[] PROGMEM = "AT+CGATT=1\r\n";
-//prog_char gsm_string_7[] PROGMEM = "AT+CIPCSGP=1,\"internet.bibob.dk\"\r\n";
-prog_char gsm_string_7[] PROGMEM = "AT+CGDCONT=1,\"IP\",\"internet.bibob.dk\"\r\n";
-prog_char gsm_string_8[] PROGMEM = "AT+CDNSCFG=\"8.8.8.8\",\"8.8.8.4\"\r\n";
-prog_char gsm_string_9[] PROGMEM = "AT+CSTT=\"internet.bibob.dk\",\"\",\"\"\r\n";
-prog_char gsm_string_10[] PROGMEM = "AT+CIPSRIP=1\r\n";
-prog_char gsm_string_11[] PROGMEM = "AT+CIICR\r\n";
-prog_char gsm_string_12[] PROGMEM = "AT+CIFSR\r\n";
-prog_char gsm_string_13[] PROGMEM = "AT+CIPSTART=\"TCP\",\"";
-prog_char gsm_string_14[] PROGMEM = "AT+CIPSTART=\"UDP\",\"";
-prog_char gsm_string_15[] PROGMEM = "AT+CIPSEND\r\n";
-prog_char gsm_string_16[] PROGMEM = "AT+CIPCLOSE\r\n";
-prog_char gsm_string_17[] PROGMEM = "AT+CIPSTATUS\r\n";
-prog_char gsm_string_18[] PROGMEM = "AT+CLTS\r\n";
-prog_char gsm_string_19[] PROGMEM = "AT+CGACT=1,1\r\n";
+prog_char gsm_string_0[] PROGMEM = "AT+CGREG?\r\n";
+prog_char gsm_string_1[] PROGMEM = "AT+CIPSTART=\"TCP\",\"";
+prog_char gsm_string_2[] PROGMEM = "AT+CIPSTART=\"UDP\",\"";
+prog_char gsm_string_3[] PROGMEM = "AT+CIPSEND\r\n";
+prog_char gsm_string_4[] PROGMEM = "AT+CIPCLOSE\r\n";
+prog_char gsm_string_5[] PROGMEM = "AT+CIPSTATUS\r\n";
+prog_char gsm_string_6[] PROGMEM = "AT+CIPSEND?\r\n";
 PROGMEM const char *gsm_string_table[] = { gsm_string_0, gsm_string_1, gsm_string_2,
-                                           gsm_string_3, gsm_string_4, gsm_string_5,
-                                           gsm_string_6, gsm_string_7, gsm_string_8,
-                                           gsm_string_9, gsm_string_10, gsm_string_11,
-                                           gsm_string_12, gsm_string_13, gsm_string_14,
-                                           gsm_string_15, gsm_string_16, gsm_string_17,
-                                           gsm_string_18, gsm_string_19 };
+                                           gsm_string_3, gsm_string_4, gsm_string_5, gsm_string_6 };
 
 #define GPRSS_LEN 13
-Pchar gprs_state_0[] = "IP INITIAL";
-Pchar gprs_state_1[] = "IP START";
-Pchar gprs_state_2[] = "IP CONFIG";
-Pchar gprs_state_3[] = "IP GPRSACT";
-Pchar gprs_state_4[] = "IP STATUS";
-Pchar gprs_state_5[] = "TCP CONNECTING";
-Pchar gprs_state_6[] = "UDP CONNECTING";
-Pchar gprs_state_7[] = "CONNECT OK";
-Pchar gprs_state_8[] = "TCP CLOSING";
-Pchar gprs_state_9[] = "UDP CLOSING"; 
+Pchar gprs_state_0[] = "IP IN"; //ITIAL";
+Pchar gprs_state_1[] = "IP STAR"; //T";
+Pchar gprs_state_2[] = "IP CO"; //NFIG";
+Pchar gprs_state_3[] = "IP GP"; //RSACT";
+Pchar gprs_state_4[] = "IP STAT"; //US";
+Pchar gprs_state_5[] = "TCP CO"; //NNECTING";
+Pchar gprs_state_6[] = "UDP CO"; //NNECTING";
+Pchar gprs_state_7[] = "CONN"; //ECT OK";
+Pchar gprs_state_8[] = "TCP CL"; //OSING";
+Pchar gprs_state_9[] = "UDP CL"; //OSING"; 
 Pchar gprs_state_10[] = "TCP CLOSED";
 Pchar gprs_state_11[] = "UDP CLOSED";
-Pchar gprs_state_12[] = "PDP DEACT";
+Pchar gprs_state_12[] = "PDP";// DEACT";
 
 
 PROGMEM const char *gprs_state_table[] = { gprs_state_0, gprs_state_1, gprs_state_2,
@@ -99,11 +79,13 @@ NewSoftSerial _gsmserial(GSM_RX, GSM_TX);
 
 DLGSM::DLGSM()
 {
+	pinMode(GSM_PWR, INPUT);
         for(uint8_t k=0;k<5;k++) {
                 _gsm_lac[k] = 0;
                 _gsm_ci[k] =  0;
         }
         _gsm_callback = NULL;
+	_sendsize = 0;
 }
                 
 void DLGSM::debug(uint8_t v) {
@@ -125,6 +107,39 @@ void DLGSM::CONN_set_flag(uint8_t f, uint8_t v) {
 	}
 }
 
+void DLGSM::pwr_on() {
+	if (!CONN_get_flag(CONN_PWR)) {
+		delay(1000);
+		pinMode(GSM_PWR, OUTPUT);
+		digitalWrite(GSM_PWR, LOW);
+#ifdef WATCHDOG
+		wdt_reset();
+#endif
+		delay(1000);
+		pinMode(GSM_PWR, INPUT);
+		delay(1000);
+		CONN_set_flag(CONN_PWR, 1);
+	}
+}
+
+void DLGSM::pwr_off() {
+	if (CONN_get_flag(CONN_PWR)) {
+		delay(1000);
+		pinMode(GSM_PWR, OUTPUT);
+        	digitalWrite(GSM_PWR, LOW);
+#ifdef WATCHDOG
+		wdt_reset();
+#endif
+     		delay(1000);
+        	pinMode(GSM_PWR, INPUT);
+		delay(1000);
+		CONN_set_flag(CONN_PWR, 0);
+		CONN_set_flag(CONN_NETWORK, 0);
+		CONN_set_flag(CONN_SENDING, 0);
+		CONN_set_flag(CONN_CONNECTED, 0);
+	}
+}
+
 void DLGSM::init(char *buff, int buffsize, uint8_t tout = 10) {
         _gsm_buff = buff; // Work area
         _gsm_buffsize = buffsize; // Size of area
@@ -132,7 +147,19 @@ void DLGSM::init(char *buff, int buffsize, uint8_t tout = 10) {
 	_gsmserial.begin(GSM_BAUD);
 }
 
+char* DLGSM::GSM_get_lac() {
+	return &_gsm_lac[0];
+}
+
+char* DLGSM::GSM_get_ci() {
+	return &_gsm_ci[0];
+}
+
 uint8_t DLGSM::GSM_init() {
+	pwr_on();
+	wdt_reset();
+	delay(3000); // Wait 3s for module to stabilize
+
 	for(int k=0;k<GSM_INIT_LEN;k++) {
 #ifdef WATCHDOG
 		wdt_reset();
@@ -147,7 +174,8 @@ uint8_t DLGSM::GSM_init() {
 }
 
 uint8_t DLGSM::GSM_process(char *check) {
-	int i = 0, a = 0, nr = _gsm_tout, bs = 0;
+	int a = 0, nr = _gsm_tout, bs = 0;
+	uint8_t i = 0;
 	uint8_t ret = 0;
 	do {
 #ifdef WATCHDOG
@@ -159,19 +187,41 @@ uint8_t DLGSM::GSM_process(char *check) {
 			bs = GSM_recvline(_gsm_buff, _gsm_buffsize);
 			if (_gsm_callback) {
 				ret += _gsm_callback(_gsm_buff, bs);
-			}
-			if (strcmp_P(_gsm_buff, PSTR("+CGREG:")) == 0) {
+			}	
+			//if (strncmp_P(_gsm_buff, PSTR("+CGREG"),6) == 0) {
+			if (_gsm_buff[0] == '+' && _gsm_buff[2] == 'G') { // +CGREG
+				i = (uint8_t)(_gsm_buff[10] - '0');
+				if (i == 1)
+					CONN_set_flag(CONN_NETWORK,1);
+				else if (i == 0 || (i > 1 && i < 6) )
+					CONN_set_flag(CONN_NETWORK,0);
 				strncpy(_gsm_lac, _gsm_buff+13, 4);
        				strncpy(_gsm_ci, _gsm_buff+20, 4);
-    			}
-			if (strcmp_P(_gsm_buff, PSTR("+CREG:")) == 0) {
+			} else if (_gsm_buff[0] == '+' && _gsm_buff[2] == 'R') { // +CREG
+			//} else if (strncmp_P(_gsm_buff, PSTR("+CREG"),5) == 0) {
+				i = (uint8_t)(_gsm_buff[11] - '0');
+				if (i == 1)
+					CONN_set_flag(CONN_NETWORK,1);
+				else if (i == 0 || (i > 1 & i < 6))
+					CONN_set_flag(CONN_NETWORK,0);
 				strncpy(_gsm_lac, _gsm_buff+12, 4);
 				strncpy(_gsm_ci, _gsm_buff+19, 4);
-			}
-			if (strcmp_P(_gsm_buff, PSTR("CLOSE OK")) == 0) { // CLOSED
+			} else if (_gsm_buff[0] == '+' && _gsm_buff[4] == 'S') { // +CIPSEND?
+			//} else if (strncmp_P(_gsm_buff, PSTR("+CIPSEND"),8) == 0) { // +CIPSEND?
+				_sendsize = atoi(_gsm_buff+10);
+				Serial.print("ss: ");
+				Serial.println(_sendsize);
+			} else if (_gsm_buff[0] == 'C' && _gsm_buff[8] == 'K') { // CLOSE OK
+			//} else if (strncmp_P(_gsm_buff, PSTR("CLOSE OK"),8) == 0) { // CLOSE OK
 				CONN_set_flag(CONN_CONNECTED, 0);
-			}
-			if (strcmp_P(_gsm_buff, PSTR("CONNECT OK")) == 0) {
+			} else if (_gsm_buff[0] == 'C' && _gsm_buff[5] == 'D') { // CLOSED 
+			//} else if (strncmp_P(_gsm_buff, PSTR("CLOSED"),6) == 0) {
+				CONN_set_flag(CONN_CONNECTED, 0);
+			} else if (_gsm_buff[0] == 'S' && _gsm_buff[6] == 'K') { // SEND OK
+			//} else if (strncmp_P(_gsm_buff, PSTR("SEND OK"),7) == 0) {
+				CONN_set_flag(CONN_SENDING, 0);	
+			} else if (_gsm_buff[0] == 'C' && _gsm_buff[10] == 'K') { // CONNECT OK
+			//} else if (strncmp_P(_gsm_buff, PSTR("CONNECT OK"),10) == 0) {
 				CONN_set_flag(CONN_CONNECTED, 1);
 			}
 			if (check != NULL) {
@@ -179,7 +229,6 @@ uint8_t DLGSM::GSM_process(char *check) {
 					return 1;
 				}
 			}   
-      			i++;
     		} else {
       			nr--;
       			delay(100);
@@ -253,7 +302,12 @@ void DLGSM::GSM_send(float v) {
 }
 
 void DLGSM::GSM_send(char *v, int len) {
-        PRINTDBG(_DEBUG, v);
+        //PRINTDBG(_DEBUG, v);
+	for(uint8_t i = 0; i < len; i++) {
+		_gsmserial.write((uint8_t)v[i]);
+		if (_DEBUG)
+			Serial.print((byte)v[i]);
+	}
 }
 
 void DLGSM::GSM_set_timeout(int tout) {
@@ -339,7 +393,7 @@ int DLGSM::GSM_recvline(char *ptr, int len) {
 }
 
 void DLGSM::GSM_request_net_status() {
-	get_from_flash(&(gsm_string_table[4]), _gsm_buff);
+	get_from_flash(&(gsm_string_table[0]), _gsm_buff);
 	GSM_send(_gsm_buff);
 	_gsm_ret = GSM_process("OK");
 }
@@ -352,7 +406,11 @@ void DLGSM::GSM_set_callback(FUN_callback fun) {
 }
                 
 uint8_t DLGSM::GPRS_init() {
-	for(uint8_t k=0;k<GPRS_INIT_LEN;k++) {
+	uint8_t len = GPRS_INIT_LEN;
+	if (!CONN_get_flag(CONN_NETWORK))
+		len = GPRS_INIT_NONTWR_LEN;
+
+	for(uint8_t k=0;k<len;k++) {
 #ifdef WATCHDOG
 		wdt_reset();
 #endif
@@ -380,9 +438,9 @@ uint8_t DLGSM::GPRS_connect(char *server, short port, bool proto) {
 	}
 
 	if (proto)
-		get_from_flash(&(gsm_string_table[13]), _gsm_buff);
+		get_from_flash(&(gsm_string_table[1]), _gsm_buff);
 	else
-		get_from_flash(&(gsm_string_table[14]), _gsm_buff);
+		get_from_flash(&(gsm_string_table[2]), _gsm_buff);
 	GSM_send(_gsm_buff);
 	GSM_send(server);
 	GSM_send("\",\"");
@@ -399,11 +457,18 @@ uint8_t DLGSM::GPRS_connect(char *server, short port, bool proto) {
 	}
 	return s;
 }
-            
+           
+uint16_t DLGSM::GPRS_send_get_size() {
+	return _sendsize;
+}
+ 
 uint8_t DLGSM::GPRS_send_start() {
 	uint8_t nr=5;
 	do {
-		get_from_flash(&(gsm_string_table[15]), _gsm_buff); // Send AT+CIPSEND
+		get_from_flash(&(gsm_string_table[6]), _gsm_buff); // Send AT+CIPSEND? to get 
+		GSM_send(_gsm_buff); // The buffer size
+		GSM_process("+");
+		get_from_flash(&(gsm_string_table[3]), _gsm_buff); // Send AT+CIPSEND
 		GSM_send(_gsm_buff);
 		delay(100);
 		nr--;
@@ -439,7 +504,7 @@ uint8_t DLGSM::GPRS_send_end() {
 	if (CONN_get_flag(CONN_SENDING)) {
 		_gsmserial.print(26, BYTE);
 		GSM_send(0x1a);
-		r = GSM_process("SEND OK", 30);
+		r = GSM_process("OK", 30);
 		if (r) CONN_set_flag(CONN_SENDING, 0);
 	}
 	return r;
@@ -449,7 +514,7 @@ uint8_t DLGSM::GPRS_close() {
 	int r = 0;
 	int s = GPRS_check_conn_state();
 	if (s == GPRSS_CONNECT_OK) {
-		get_from_flash(&(gsm_string_table[16]), _gsm_buff); // Send AT+CIPCLOSE
+		get_from_flash(&(gsm_string_table[4]), _gsm_buff); // Send AT+CIPCLOSE
 		GSM_send(_gsm_buff);
 		r = GSM_process("CLOSE", 30);
 		return r;
@@ -463,9 +528,9 @@ int8_t DLGSM::GPRS_check_conn_state() {
 #ifdef WATCHDOG
 	wdt_reset();
 #endif
-	get_from_flash(&(gsm_string_table[17]), _gsm_buff);
+	get_from_flash(&(gsm_string_table[5]), _gsm_buff);
 	GSM_send(_gsm_buff);
-	GSM_process(NULL);
+	GSM_process("STATE:", 20);
 	if (strcmp_P(_gsm_buff, PSTR("STATE:")) >= 0) {
 		for(k=0; k < GPRSS_LEN; k++) {
 			if (strcmp_flash(_gsm_buff+7, &(gprs_state_table[k]), d) == 0) {
@@ -477,7 +542,7 @@ int8_t DLGSM::GPRS_check_conn_state() {
 						GPRS_init();
 						break; 
 					case GPRSS_IP_GPRSACT: // Just need to query the local IP...
-						get_from_flash(&(gprs_init_string_table[10]), _gsm_buff);
+						get_from_flash(&(gprs_init_string_table[9]), _gsm_buff);
 						GSM_send(_gsm_buff);
 						GSM_process(NULL, 25);
 						break;

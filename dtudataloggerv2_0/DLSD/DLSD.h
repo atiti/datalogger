@@ -6,15 +6,15 @@
 #include <DLCommon.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
-#include <SdFat.h>
+#include <Fat16.h>
 #include <string.h>
 
 #define CONFIG 0
-#define SYSLOG 1
-#define DATALOG 2
-#define EVENTLOG 3
+#define DATALOG 1
+//#define SYSLOG 2
+//#define EVENTLOG 3
 
-#define NUM_FILES 4
+#define NUM_FILES 2
 
 class DLSD
 {
@@ -22,6 +22,13 @@ class DLSD
 		DLSD(bool fullspeed, uint8_t CS_pin);
 		void debug(int v);
 		int8_t init();
+		uint8_t get_num_files();
+		uint16_t get_files_count(uint8_t fid);
+		uint8_t set_files_count(uint8_t fid, uint16_t count);
+		void reset_files_count();
+		uint16_t get_saved_count(uint8_t fid);
+		uint8_t set_saved_count(uint8_t fid, uint16_t count);
+		void reset_saved_count();
 		int8_t is_available();
 		void pad_filename(char *filename, uint16_t c);
 		bool increment_file(uint8_t n);
@@ -42,12 +49,11 @@ class DLSD
 		uint8_t _CS;
 		uint8_t _DEBUG;
 		int8_t _inited;
-		Sd2Card _card;
-		SdVolume _vol;
-		SdFile _root;
-		SdFile _files[NUM_FILES];
+		SdCard _card;
+		Fat16 _files[NUM_FILES];
 		boolean _files_open[NUM_FILES];
 		uint16_t _files_count[NUM_FILES];
+		uint16_t _saved_count[NUM_FILES];
 		char _filename[12];
 };
 

@@ -7,6 +7,14 @@
 #include "WConstants.h"
 #include <Time.h>
 
+#ifndef cbi
+#define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
+#endif
+
+#ifndef sbi
+#define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
+#endif
+
 typedef int (*FUN_callback)(char *, int);
 
 void get_from_flash(void *ptr, char *dst);

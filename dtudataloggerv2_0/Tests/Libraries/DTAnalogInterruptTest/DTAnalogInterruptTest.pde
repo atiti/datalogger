@@ -28,27 +28,28 @@ void setup() {
   else
     Serial.println("RTC has set the system time");      
 
-  analog.init(analog_values, std_dev);
+  analog.init(analog_values, std_dev, 1);
   analog.debug(1); // Turn on analog debug  ging
 
-  analog.set_pin(0, EVENT);
-  //analog.set_pin(1, ANALOG);
-  //analog.set_pin(2, ANALOG);
-  //analog.set_pin(3, ANALOG);
-  //analog.set_pin(4, ANALOG);
-  analog.set_pin(5, COUNTER);
-  //analog.set_pin(6, ANALOG);
-  analog.set_pin(7, ANALOG);
-  analog.set_pin(8, COUNTER);
-  //analog.set_pin(9, ANALOG);
-  //analog.set_pin(10, ANALOG);
-  analog.set_pin(11, DIGITAL);
+  analog.set_pin(0, IO_EVENT);
+  analog.set_pin(1, IO_ANALOG);
+  analog.set_pin(2, IO_ANALOG);
+  analog.set_pin(3, IO_ANALOG);
+  analog.set_pin(4, IO_ANALOG);
+  analog.set_pin(5, IO_ANALOG);
+  analog.set_pin(6, IO_ANALOG);
+  analog.set_pin(7, IO_ANALOG);
+  analog.set_pin(8, IO_ANALOG);
+  analog.set_pin(9, IO_ANALOG);
+  analog.set_pin(10, IO_ANALOG);
+  analog.set_pin(11, IO_ANALOG);
+  analog.set_pin(12, IO_ANALOG);
   
   //analog.set_pin(2, DIGITAL);
   //analog.set_pin(7, ANALOG);
   //analog.set_pin(8, DIGITAL);
   //analog.set_pin(9, ANALOG);
-  //analog.set_pin(13, ANALOG);
+  analog.set_pin(15, IO_ANALOG);
 
   attachInterrupt(0, intnow, CHANGE);
 }
