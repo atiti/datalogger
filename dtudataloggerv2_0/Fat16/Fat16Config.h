@@ -26,7 +26,7 @@
 /**
  * Allow use of deprecated functions if non-zero
  */
-#define ALLOW_DEPRECATED_FUNCTIONS 1
+#define ALLOW_DEPRECATED_FUNCTIONS 0
 /**
  * SdCard::writeBlock will protect block zero if set non-zero
  */
@@ -34,5 +34,5 @@
 /**
  * Set non-zero to allow access to Fat16 internals by cardInfo debug sketch
  */
-#define FAT16_DEBUG_SUPPORT 1
+#define FAT16_DEBUG_SUPPORT 0
 #endif  // Fat16Config_h

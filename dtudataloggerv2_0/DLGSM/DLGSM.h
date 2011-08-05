@@ -51,6 +51,7 @@ class DLGSM
 		DLGSM(void);
 		void pwr_off();
 		void pwr_on();
+		uint8_t wake_modem();
 		void init(char *buff, int buffsize, uint8_t tout);
 		void debug(uint8_t v);
 		uint8_t GSM_init();
@@ -70,6 +71,8 @@ class DLGSM
 		int GSM_recvline_fast(char *ptr, int len);
 		void GSM_request_net_status();
 		void GSM_get_local_time();
+		uint8_t SMS_send(char *nr, char *text, int len);
+		uint8_t SMS_send_end();
 		void GSM_set_callback(FUN_callback fun);
 		uint8_t GPRS_init();
 		uint8_t GPRS_connect(char *server, short port, bool proto);

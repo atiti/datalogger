@@ -23,6 +23,8 @@ int strcmp_flash(char *str, void *ptr, char *dst);
 int get_free_memory();
 uint8_t get_checksum(char *string);
 int memory_test();
+void fmtDouble(double val, byte precision, char *buf, unsigned bufLen = 0xffff);
+unsigned fmtUnsigned(unsigned long val, char *buf, unsigned bufLen = 0xffff, byte width = 0);
 
 #endif
 

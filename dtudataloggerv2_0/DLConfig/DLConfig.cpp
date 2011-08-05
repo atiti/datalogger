@@ -8,10 +8,22 @@
 #define SAVED_COUNT_1 8
 #define APN_STRING 10
 #define APN_STRING_LEN 50
-#define HTTP_URL 60
-#define HTTP_URL_LEN 50
+#define HTTP_STRING 60
+#define HTTP_STRING_LEN 50
 
 Config _int_config;
+
+char* fforward(char *ptr) {
+        int i;
+        char *cptr = ptr;
+        for(i = 0; i < strlen(ptr); i++) {
+                if (ptr[i] == ' ')
+                        cptr++;
+                else
+                        return cptr;
+        }
+        return NULL;
+}
 
 DLConfig::DLConfig()
 {
@@ -79,20 +91,36 @@ int DLConfig::log_process_callback(char *line, int len) {
 		}
 	} else if (strncmp_P(line, PSTR("HT"), 2) == 0) { // HTTP params
 		if (line[5] == 'U' && line[6] == 'R') { // HTTP_URL
-			
+			param = fforward(param);
+			if (param != NULL) {
+				Serial.println(param);
+				if (sync_EEPROM(HTTP_STRING, param, strlen(param)+1))
+					get_from_flash_P(PSTR("URL W"), _buff);
+				else
+					get_from_flash_P(PSTR("URL OK"), _buff);
+				Serial.println(_buff);
+			}
 		} else if (line[5] == 'S') { // HTTP_STATUS_TIME
-			_config->http_status_time = atoi(param);
+			_config->http_status_time = atol(param)*60;
 			get_from_flash_P(PSTR("HST: "), _buff);
 			Serial.print(_buff);
 			Serial.println(_config->http_status_time, DEC);
 		} else if (line[5] == 'U' && line[6] == 'P') { // HTTP_UPLOAD_TIME
-			_config->http_upload_time = atoi(param);
+			_config->http_upload_time = atol(param)*60;
 			get_from_flash_P(PSTR("HUT: "), _buff);
 			Serial.print(_buff);
 			Serial.println(_config->http_upload_time, DEC);
 		}
 	} else if (strncmp_P(line, PSTR("GP"), 2) == 0) { // GPRS params
 		if (line[5] == 'A') { // GPRS_APN
+			param = fforward(param);
+			if (param != NULL) {
+				if (sync_EEPROM(APN_STRING, param, strlen(param)+1))
+					get_from_flash_P(PSTR("APN W"), _buff);
+				else
+					get_from_flash_P(PSTR("APN OK"), _buff);
+				Serial.println(_buff);
+			}
 		} else if (line[5] == 'U') { // GPRS_USER
 		} else if (line[5] == 'P') { // GPRS_PASS
 		}
@@ -118,6 +146,16 @@ uint8_t DLConfig::load() {
 		_sd->init();
 		return 0;
 	}
+}
+
+uint8_t DLConfig::load_string_EEPROM(uint16_t addr, char *data, int len) {
+	int j = 0;
+	for(j=0;j<len;j++) {
+		data[j] = (char)EEPROM.read(addr+j);
+		if (data[j] == 0)
+			return 1;
+	}
+	return 1;
 }
 
 uint8_t DLConfig::load_EEPROM(uint16_t addr, char *data, int len) {
@@ -193,3 +231,15 @@ uint8_t DLConfig::save_files_count(uint8_t saved) {
 Config* DLConfig::get_config() {
 	return _config;
 }
+
+uint8_t DLConfig::load_APN(char *dst, int len) {
+	load_string_EEPROM(APN_STRING, dst, APN_STRING_LEN);
+	return 1;
+}
+
+uint8_t DLConfig::load_URL(char *dst, int len) {
+	load_string_EEPROM(HTTP_STRING, dst, HTTP_STRING_LEN);
+	return 1;
+}
+
+

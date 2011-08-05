@@ -77,7 +77,8 @@ int8_t DLSD::is_available() {
 
 void DLSD::pad_filename(char *filename, uint16_t c) {
 	char nums[6];
-	itoa(c, nums, 10);
+	//itoa(c, nums, 10);
+	fmtUnsigned(c, nums, 10);
 	uint8_t a = strlen(nums);
 	for(char i=0;i<a;i++) {
 		filename[8-(a-i)] = nums[i];
@@ -86,11 +87,7 @@ void DLSD::pad_filename(char *filename, uint16_t c) {
 
 bool DLSD::increment_file(uint8_t n) {
 	close(n);
-	//get_from_flash(&(sd_filename_table[n]), _filename);
 	_files_count[n] = _files_count[n] + 1;
-	//pad_filename(_filename, _files_count[n]);
-	//strcat_P(_filename, sd_filename_ext);
-	//return _files[n].rename(&_root, _filename);
 	return true;
 }
 

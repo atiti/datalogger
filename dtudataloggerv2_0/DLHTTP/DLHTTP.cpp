@@ -38,11 +38,13 @@ uint8_t DLHTTP::backend_start(char *host, uint16_t port) {
 	_gsm->pwr_on();
 	backend_err = 999;
 	for(j=0;j<10;j++) {
-#ifdef WATCHDOG
-		wdt_reset();
-#endif
-		s = _gsm->GPRS_check_conn_state();
-		if (s >= GPRSS_IP_STATUS && s < GPRSS_PDP_DEACT) {
+//#ifdef WATCHDOG
+//		wdt_reset();
+//#endif
+//		s = _gsm->GPRS_check_conn_state();
+//		if (s >= GPRSS_IP_STATUS && s < GPRSS_PDP_DEACT) {
+		s = _gsm->wake_modem();
+		if (s) {
 			s = _gsm->GPRS_connect(host, port, true);
 			if (s == GPRSS_CONNECT_OK) {
 				_gsm->GPRS_send_start();

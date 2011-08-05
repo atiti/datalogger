@@ -12,8 +12,8 @@
 
 typedef struct {
 	uint16_t id;
-	uint8_t http_status_time;
-	uint8_t http_upload_time;
+	uint32_t http_status_time;
+	uint32_t http_upload_time;
 	uint8_t measure_time;
 	uint16_t measure_length;
 //	char secret[8];
@@ -32,11 +32,14 @@ class DLConfig
 		void init(DLSD *sd, DLAnalog *analog, char *buff, int len);
 		int log_process_callback(char *line, int len);
 		uint8_t load();
+		uint8_t load_string_EEPROM(uint16_t addr, char *data, int len);
 		uint8_t load_EEPROM(uint16_t addr, char *data, int len);
 		uint8_t save_EEPROM(uint16_t addr, char *data, int len);
 		uint8_t sync_EEPROM(uint16_t addr, char *data, int len);		
 		uint8_t save_files_count(uint8_t saved);
 		uint8_t load_files_count(uint8_t saved);
+		uint8_t load_APN(char *dst, int len);
+		uint8_t load_URL(char *dst, int len);
 		Config* get_config();
 	private:
 		Config *_config;
