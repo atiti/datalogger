@@ -23,6 +23,8 @@
 #define UPLOAD 4
 #define EVENT 5
 
+#define MAX_FILESIZE 20000
+
 //#define MEASURE_TIME 5000  //(5*60*1000ms) 
 // Config
 DLConfig cfg;
@@ -38,6 +40,7 @@ long last_measure = millis();
 time_t start_measure = now();
 time_t last_status = 0; 
 time_t last_upload = 0; 
+uint8_t initial_start = 0; // Set this to 3 not to send SMS
 // SD setup
 DLSD sd(true, 10); // Setup FULL_SPEED SPI and CS on pin 10
 unsigned long filesize = 0;
@@ -49,14 +52,14 @@ DLGSM gsm;
 // HTTP
 DLHTTP http;
 
-#define LOG_BUFF_SIZE 101
+#define LOG_BUFF_SIZE 111
 time_t lt = now();
 uint8_t state = LOAD_CONFIG; // lets start at IDLE state
 uint8_t lstate = IDLE;
 char log_buff[LOG_BUFF_SIZE];
 char gsm_buff[GSM_BUFF_SIZE];
 char smallbuff[12];
-uint8_t p, u, v;
+uint16_t p, u, v;
 
 void int_routine() {
   analog.read_all(1);
@@ -87,6 +90,11 @@ uint8_t upload_file(uint8_t fd) {
   // Start sending the parts
   i = 0;
   while(i < parts) { // Send parts
+    if (Serial.available()) {
+      ret = Serial.read();
+      if (ret == 's')
+       break;     
+    }
     // Here the request header is constructed
     strcpy_P(log_buff, PSTR("http://dl.zsuatt.com/upload.php"));
     strcat_P(log_buff, PSTR("?id="));   // Datalogger ID
@@ -180,10 +188,13 @@ uint8_t upload_file(uint8_t fd) {
 }
 
 void setup() {
+  int8_t e = -1;
   wdt_disable(); // Disable watchdog
   Serial.begin(57600); // Initialize serial
   get_from_flash_P(PSTR("** DL v2.1.0"), log_buff);  // Print welcome
   Serial.println(log_buff);
+  
+  
 /* lot of flash
   get_from_flash_P(PSTR("Mem: "), log_buff);
   Serial.print(log_buff);
@@ -210,20 +221,33 @@ void setup() {
  
   // AT this point we proceed, but RTC/SD might be broken...
     
+  analog.init(analog_values, std_dev, count_values, 600); // Initialize IO with buffers
+  analog.set_int_fun(int_routine); // Set up the interrupt handler for events
+  analog.debug(1); // Turn on analog debug
+
     // Config file loading
   cfg.init(&sd, &analog, log_buff, LOG_BUFF_SIZE);
   
-  analog.init(analog_values, std_dev, count_values, 5); // Initialize IO with buffers
-  analog.set_int_fun(int_routine); // Set up the interrupt handler for events
-  analog.debug(1); // Turn on analog debug
 
   // Initialize GSM
   gsm.init(gsm_buff, GSM_BUFF_SIZE, 5);
   gsm.debug(1);
+
+  // Try to switch off the module 
+  for(u=0;u<3;u++) {
+    gsm.GSM_send("AT\r\n");
+    e = gsm.GSM_process("OK");
+    if (e > 0) {
+      gsm.pwr_off(1);
+      delay(5000);
+      break; 
+    }
+  }
+
   // HTTP stack on GSM
   http.init(gsm_buff, &gsm);
     
-  last_status = 0;
+  last_status = now(); //0;
   last_upload = now();
     
   wdt_enable(WDTO_8S);
@@ -244,11 +268,11 @@ void loop() {
         state = EVENT;
         break;
       }
-      else if ((now() - last_status) > (config->http_status_time*60)) {
+      else if ((now() - last_status) > (config->http_status_time)) {
         last_status = now();
         state = STATUS; 
       }
-      else if ((now() - last_upload) > (config->http_upload_time*60)) {
+      else if ((now() - last_upload) > (config->http_upload_time)) {
          last_upload = now();
          state = UPLOAD;
       }
@@ -268,25 +292,32 @@ void loop() {
       break;
     case MEASURE: // Collect measurements
       v = analog.read_all(); // Read all analog ports
-      //if (v >= 100) {
-        if (analog.get_all()) { // || (now() - start_measure) > 60) {
-          last_measure = millis();
-          analog.time_log_line(log_buff);   
-          if (sd.is_available() < 0)
-            sd.init();
-          filesize = sd.open(DATALOG, O_RDWR | O_CREAT | O_APPEND);
-          if (filesize > 15000) {
-            sd.close(DATALOG);
-            sd.increment_file(DATALOG);
-            cfg.save_files_count(0);
-            filesize = sd.open(DATALOG, O_RDWR | O_CREAT | O_APPEND);
-          }
-          Serial.print(log_buff);
-          sd.write(DATALOG, log_buff);
+      if (analog.get_all()) { // || (now() - start_measure) > 60) {
+        last_measure = millis();
+        analog.time_log_line(log_buff);   
+        if (sd.is_available() < 0)
+          sd.init();
+        filesize = sd.open(DATALOG, O_RDWR | O_CREAT | O_APPEND);
+        if (filesize > MAX_FILESIZE) {
           sd.close(DATALOG);
-          analog.pwr_off();
-          state = IDLE;   
-          analog.reset();  
+          sd.increment_file(DATALOG);
+          cfg.save_files_count(0);
+          filesize = sd.open(DATALOG, O_RDWR | O_CREAT | O_APPEND);
+        }
+        Serial.print(log_buff);
+        sd.write(DATALOG, log_buff);
+        sd.close(DATALOG);
+        //analog.pwr_off();
+      
+        if (initial_start < 3) {
+          gsm.pwr_on();
+          gsm.wake_modem();
+          gsm.SMS_send("+4527148803", log_buff, strlen(log_buff));
+          gsm.pwr_off();
+          initial_start++; 
+        }
+        state = IDLE;   
+        analog.reset();  
       } 
       if (got_event) {
         lstate = state;
@@ -294,8 +325,6 @@ void loop() {
       }
       break;
     case STATUS: // Report status to server
-      get_from_flash_P(PSTR("SS"), log_buff);
-      Serial.println(log_buff);
       strcpy_P(log_buff, PSTR("http://dl.zsuatt.com/status.php"));
       strcat_P(log_buff, PSTR("?id="));
       fmtUnsigned(config->id, smallbuff, 10);
@@ -305,29 +334,28 @@ void loop() {
       strcat_P(log_buff, PSTR("&gi="));
       strcat(log_buff, gsm.GSM_get_ci());
       strcat_P(log_buff, PSTR("&t="));
-      fmtUnsigned(analog_values[15], smallbuff, 10);
+      fmtUnsigned(analog_values[15], smallbuff, 12);
       strcat(log_buff, smallbuff);
-      //strcat(log_buff, itoa(analog_values[15], smallbuff, 16));
       strcat_P(log_buff, PSTR("&ts="));
-      fmtUnsigned(now(), smallbuff, 10);
+      fmtUnsigned(now(), smallbuff, 12);
       strcat(log_buff, smallbuff);
-      //strcat(log_buff, ltoa(now(), smallbuff, 16));
       strcat_P(log_buff, PSTR("&u="));
-      fmtUnsigned(millis(), smallbuff, 10);
+      fmtUnsigned(millis(), smallbuff, 12);
       strcat(log_buff, smallbuff);
-      //strcat(log_buff, ltoa(millis(), smallbuff, 16));
       u = sd.get_files_count(DATALOG);
       strcat_P(log_buff, PSTR("&cl="));
-      fmtUnsigned(u, smallbuff, 10);
+      fmtUnsigned(u, smallbuff, 12);
       strcat(log_buff, smallbuff);
       strcat_P(log_buff, PSTR("&cls=0"));
       v = http.GET(log_buff);
+      
       get_from_flash_P(PSTR("R: "), log_buff);
       Serial.print(log_buff);
       Serial.println(v, DEC);
-      gsm.pwr_off();
+      gsm.pwr_off(); // Power off module
       
-      if (RTC.get() < now()) {
+      // Syncronise RTC to server time
+      if (RTC.get() < (now()-360)) {
         get_from_flash_P(PSTR("RTCB"), log_buff);
         Serial.println(log_buff);
         RTC.set(now());
@@ -335,19 +363,16 @@ void loop() {
       state = lstate; // Done with reporting move to IDLE
       break;
     case UPLOAD: // Upload our files
-      get_from_flash_P(PSTR("UL"), log_buff);
-      Serial.println(log_buff);
       sd.increment_file(DATALOG);
       cfg.save_files_count(0);
       
       u = sd.get_files_count(DATALOG);
-      Serial.println(u, DEC);
       if ((u -(sd.get_saved_count(DATALOG)+1)) > 5)
         p = u - 5;
       else
         p = sd.get_saved_count(DATALOG) + 1;
         
-      for(uint8_t i = p; i < u; i++) {
+      for(uint16_t i = p; i < u; i++) {
         sd.set_files_count(DATALOG, i);
         Serial.print("UL #");
         Serial.println(i, DEC);
@@ -402,7 +427,7 @@ void loop() {
     } else if (v == 'h') {
       Serial.print("hi ");
       Serial.println(state, DEC);
-    } else if (v == 'l') {
+    } /*else if (v == 'l') {
       get_from_flash_P(PSTR("LFC!"), log_buff);
       Serial.println(log_buff);
       cfg.load_files_count(0); 
@@ -411,25 +436,7 @@ void loop() {
       Serial.println(log_buff);
       sd.increment_file(DATALOG);
       cfg.save_files_count(0);
-    } else if (v == 'm') {
-      Serial.print(now(), DEC);
-      Serial.print(" ");
-      Serial.print(last_status, DEC);
-      Serial.print(" ");
-      Serial.println(last_upload, DEC);
-      Serial.print(now() - last_status, DEC);
-      Serial.print(" ");
-      Serial.print(now() - last_upload, DEC);
-      Serial.print(" ");
-      Serial.print((config->http_upload_time), DEC);
-      Serial.print(" ");
-      Serial.println((config->http_status_time), DEC);
-    } else if (v == 'p') {
-      cfg.load_APN(log_buff, 50);
-      Serial.println(log_buff); 
-      cfg.load_URL(log_buff, 50);
-      Serial.println(log_buff);
-    }
+    } */
   }
   wdt_reset(); 
 }

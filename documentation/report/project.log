@@ -1,0 +1,862 @@
+This is pdfTeX, Version 3.1415926-1.40.10 (TeX Live 2009/Debian) (format=latex 2011.7.27)  5 AUG 2011 16:21
+entering extended mode
+ %&-line parsing enabled.
+**project.tex
+(./project.tex
+LaTeX2e <2009/09/24>
+Babel <v3.8l> and hyphenation patterns for english, usenglishmax, dumylang, noh
+yphenation, loaded.
+(./project.cls (/usr/share/texmf-texlive/tex/latex/graphics/epsfig.sty
+Package: epsfig 1999/02/16 v1.7a (e)psfig emulation (SPQR)
+
+(/usr/share/texmf-texlive/tex/latex/graphics/graphicx.sty
+Package: graphicx 1999/02/16 v1.0f Enhanced LaTeX Graphics (DPC,SPQR)
+
+(/usr/share/texmf-texlive/tex/latex/graphics/keyval.sty
+Package: keyval 1999/03/16 v1.13 key=value parser (DPC)
+\KV@toks@=\toks14
+)
+(/usr/share/texmf-texlive/tex/latex/graphics/graphics.sty
+Package: graphics 2009/02/05 v1.0o Standard LaTeX Graphics (DPC,SPQR)
+
+(/usr/share/texmf-texlive/tex/latex/graphics/trig.sty
+Package: trig 1999/03/16 v1.09 sin cos tan (DPC)
+)
+(/etc/texmf/tex/latex/config/graphics.cfg
+File: graphics.cfg 2009/08/28 v1.8 graphics configuration of TeX Live
+)
+Package graphics Info: Driver file: dvips.def on input line 91.
+
+(/usr/share/texmf-texlive/tex/latex/graphics/dvips.def
+File: dvips.def 1999/02/16 v3.0i Driver-dependant file (DPC,SPQR)
+))
+\Gin@req@height=\dimen102
+\Gin@req@width=\dimen103
+)
+\epsfxsize=\dimen104
+\epsfysize=\dimen105
+)
+(/usr/share/texmf-texlive/tex/latex/amsfonts/amssymb.sty
+Package: amssymb 2009/06/22 v3.00
+
+(/usr/share/texmf-texlive/tex/latex/amsfonts/amsfonts.sty
+Package: amsfonts 2009/06/22 v3.00 Basic AMSFonts support
+\@emptytoks=\toks15
+\symAMSa=\mathgroup4
+\symAMSb=\mathgroup5
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
+(Font)                  U/euf/m/n --> U/euf/b/n on input line 96.
+))
+(/usr/share/texmf-texlive/tex/latex/amsmath/amsmath.sty
+Package: amsmath 2000/07/18 v2.13 AMS math features
+\@mathmargin=\skip41
+
+For additional information on amsmath, use the `?' option.
+(/usr/share/texmf-texlive/tex/latex/amsmath/amstext.sty
+Package: amstext 2000/06/29 v2.01
+
+(/usr/share/texmf-texlive/tex/latex/amsmath/amsgen.sty
+File: amsgen.sty 1999/11/30 v2.0
+\@emptytoks=\toks16
+\ex@=\dimen106
+))
+(/usr/share/texmf-texlive/tex/latex/amsmath/amsbsy.sty
+Package: amsbsy 1999/11/29 v1.2d
+\pmbraise@=\dimen107
+)
+(/usr/share/texmf-texlive/tex/latex/amsmath/amsopn.sty
+Package: amsopn 1999/12/14 v2.01 operator names
+)
+\inf@bad=\count79
+LaTeX Info: Redefining \frac on input line 211.
+\uproot@=\count80
+\leftroot@=\count81
+LaTeX Info: Redefining \overline on input line 307.
+\classnum@=\count82
+\DOTSCASE@=\count83
+LaTeX Info: Redefining \ldots on input line 379.
+LaTeX Info: Redefining \dots on input line 382.
+LaTeX Info: Redefining \cdots on input line 467.
+\Mathstrutbox@=\box26
+\strutbox@=\box27
+\big@size=\dimen108
+LaTeX Font Info:    Redeclaring font encoding OML on input line 567.
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 568.
+\macc@depth=\count84
+\c@MaxMatrixCols=\count85
+\dotsspace@=\muskip10
+\c@parentequation=\count86
+\dspbrk@lvl=\count87
+\tag@help=\toks17
+\row@=\count88
+\column@=\count89
+\maxfields@=\count90
+\andhelp@=\toks18
+\eqnshift@=\dimen109
+\alignsep@=\dimen110
+\tagshift@=\dimen111
+\tagwidth@=\dimen112
+\totwidth@=\dimen113
+\lineht@=\dimen114
+\@envbody=\toks19
+\multlinegap=\skip42
+\multlinetaggap=\skip43
+\mathdisplay@stack=\toks20
+LaTeX Info: Redefining \[ on input line 2666.
+LaTeX Info: Redefining \] on input line 2667.
+)
+(/usr/share/texmf-texlive/tex/latex/graphics/color.sty
+Package: color 2005/11/14 v1.0j Standard LaTeX Color (DPC)
+
+(/etc/texmf/tex/latex/config/color.cfg
+File: color.cfg 2007/01/18 v1.5 color configuration of teTeX/TeXLive
+)
+Package color Info: Driver file: dvips.def on input line 130.
+
+(/usr/share/texmf-texlive/tex/latex/graphics/dvipsnam.def
+File: dvipsnam.def 1999/02/16 v3.0i Driver-dependant file (DPC,SPQR)
+))
+Document Class 'acm_proc_article-sp' <22nd. April '09>. Modified by G.K.M. Tobi
+n
+Based in part upon document Style `acmconf' <22 May 89>. Hacked 4/91 by
+shivers@cs.cmu.edu, 4/93 by theobald@cs.mcgill.ca
+Excerpts were taken from (Journal Style) 'esub2acm.cls'.
+****** Bugs/comments/suggestions to Gerry Murray -- murray@hq.acm.org ******
+\footheight=\dimen115
+\@maxsep=\dimen116
+\@dblmaxsep=\dimen117
+\aucount=\count91
+\originalaucount=\count92
+\auwidth=\dimen118
+\auskip=\dimen119
+\auskipcount=\count93
+\auskip=\dimen120
+\allauboxes=\dimen121
+\addauthors=\toks21
+\addauflag=\count94
+\subtitletext=\toks22
+! Font \secfnt=ptmb8t at 12.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.273 \newfont{\secfnt}{ptmb8t at 12pt}
+                                       
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \secit=ptmbi8t at 12.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.274 \newfont{\secit}{ptmbi8t at 12pt}
+                                           %13 Jan 00 gkmt
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \subsecfnt=ptmri8t at 11.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.275 \newfont{\subsecfnt}{ptmri8t at 11pt}
+                                           
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \subsecit=ptmbi8t at 11.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.276 \newfont{\subsecit}{ptmbi8t at 11pt}
+                                            %
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \ttlfnt=phvb8t at 18.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.277 \newfont{\ttlfnt}{phvb8t at 18pt}
+                                       
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \ttlit=phvbo8t at 18.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.278 \newfont{\ttlit}{phvbo8t at 18pt}
+                                           % GM 2/4/2000
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \subttlfnt=phvr8t at 14.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.279 \newfont{\subttlfnt}{phvr8t at 14pt}
+                                          
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \subttlit=phvro8t at 14.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.280 \newfont{\subttlit}{phvro8t at 14pt}
+                                           % GM 2/4/2000
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \subttlbf=phvb8t at 14.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.281 \newfont{\subttlbf}{phvb8t at 14pt}
+                                           % 13 Jan 00 gkmt
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \aufnt=phvr8t at 12.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.282 \newfont{\aufnt}{phvr8t at 12pt}
+                                      
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \auit=phvro8t at 12.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.283 \newfont{\auit}{phvro8t at 12pt}
+                                           % GM 2/4/2000
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \affaddr=phvr8t at 10.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.284 \newfont{\affaddr}{phvr8t at 10pt}
+                                        
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \affaddrit=phvro8t at 10.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.285 \newfont{\affaddrit}{phvro8t at 10pt}
+                                            % GM 2/4/2000
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \eaddfnt=phvr8t at 12.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.286 \newfont{\eaddfnt}{phvr8t at 12pt}
+                                        
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \ixpt=ptmr8t at 9.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.287 \newfont{\ixpt}{ptmr8t at 9pt}
+                                    
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \confname=ptmri8t at 8.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.288 \newfont{\confname}{ptmri8t at 8pt}
+                                         
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \crnotice=ptmr8t at 8.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.289 \newfont{\crnotice}{ptmr8t at 8pt}
+                                        
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+! Font \ninept=ptmr8t at 9.0pt not loadable: Metric (TFM) file not found.
+<to be read again> 
+                   \relax 
+l.290 \newfont{\ninept}{ptmr8t at 9pt}
+                                      
+I wasn't able to read the size data for this font,
+so I will ignore the font specification.
+[Wizards can fix TFM files using TFtoPL/PLtoTF.]
+You might try inserting a different font spec;
+e.g., type `I\font<same font id>=<substitute font name>'.
+
+\savesection=\count95
+\sectioncntr=\count96
+\c@figure=\count97
+\c@table=\count98
+\titleboxnotes=\toks23
+\titleboxnoteflag=\count99
+
+LaTeX Warning: You have requested document class `project',
+               but the document class provides `acm_proc_article-sp'.
+
+Document Class: acm_proc_article-sp 2009/04/22 - V3.2SP - based on esub2acm.sty
+ <23 April 96>
+(/usr/share/texmf-texlive/tex/latex/base/latexsym.sty
+Package: latexsym 1998/08/17 v2.2e Standard LaTeX package (lasy symbols)
+\symlasy=\mathgroup6
+LaTeX Font Info:    Overwriting symbol font `lasy' in version `bold'
+(Font)                  U/lasy/m/n --> U/lasy/b/n on input line 47.
+)
+\@acmtitlebox=\box28
+\titlenotecount=\count100
+\tntoks=\toks24
+\tntokstwo=\toks25
+\tntoksthree=\toks26
+\tntoksfour=\toks27
+\tntoksfive=\toks28
+\catcount=\count101
+\copyrightnotice=\toks29
+\conf=\toks30
+\confinfo=\toks31
+\c@part=\count102
+\c@section=\count103
+\c@subsection=\count104
+\c@subsubsection=\count105
+\c@paragraph=\count106
+
+Using 'Abbrev' bibliography style
+LaTeX Info: Redefining \cite on input line 1193.
+\bibindent=\dimen122
+\colcntr=\count107
+\saveb@x=\box29
+\copyrtyr=\toks32
+\acmcopyr=\toks33
+\boilerplate=\toks34
+\copyrightetc=\toks35
+(/usr/share/texmf-texlive/tex/latex/base/fontenc.sty
+Package: fontenc 2005/09/27 v1.99g Standard LaTeX package
+
+(/usr/share/texmf-texlive/tex/latex/base/t1enc.def
+File: t1enc.def 2005/09/27 v1.99g Standard LaTeX file
+LaTeX Font Info:    Redeclaring font encoding T1 on input line 43.
+)
+LaTeX Font Info:    Try loading font information for T1+aer on input line 100.
+
+(/usr/share/texmf-texlive/tex/latex/ae/t1aer.fd
+File: t1aer.fd 1997/11/16 Font definitions for T1/aer.
+))) (./project.aux
+
+LaTeX Warning: Label `nanortalik' multiply defined.
+
+)
+\openout1 = `project.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 3.
+LaTeX Font Info:    ... okay on input line 3.
+Missing character: There is no D in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no g in font nullfont!
+Missing character: There is no g in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no f in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no p in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no c in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no d in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no c in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no c in font nullfont!
+Missing character: There is no c in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no d in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no [ in font nullfont!
+Missing character: There is no S in font nullfont!
+Missing character: There is no p in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no c in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no C in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no u in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no - in font nullfont!
+Missing character: There is no P in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no p in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no y in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no p in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no f in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no f in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no d in font nullfont!
+Missing character: There is no w in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no k in font nullfont!
+Missing character: There is no ] in font nullfont!
+LaTeX Font Info:    Try loading font information for U+msa on input line 62.
+ (/usr/share/texmf-texlive/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2009/06/22 v3.00 AMS symbols A
+)
+LaTeX Font Info:    Try loading font information for U+msb on input line 62.
+
+(/usr/share/texmf-texlive/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2009/06/22 v3.00 AMS symbols B
+)
+LaTeX Font Info:    Try loading font information for U+lasy on input line 62.
+
+(/usr/share/texmf-texlive/tex/latex/base/ulasy.fd
+File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
+)
+Missing character: There is no A in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no S in font nullfont!
+Missing character: There is no u in font nullfont!
+Missing character: There is no k in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no d in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no 0 in font nullfont!
+Missing character: There is no 7 in font nullfont!
+Missing character: There is no 0 in font nullfont!
+Missing character: There is no 6 in font nullfont!
+Missing character: There is no 0 in font nullfont!
+Missing character: There is no 0 in font nullfont!
+Missing character: There is no , in font nullfont!
+Missing character: There is no D in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no p in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no m in font nullfont!
+Missing character: There is no I in font nullfont!
+Missing character: There is no T in font nullfont!
+Missing character: There is no , in font nullfont!
+Missing character: There is no 7 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no m in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no 0 in font nullfont!
+Missing character: There is no 7 in font nullfont!
+Missing character: There is no 0 in font nullfont!
+Missing character: There is no 6 in font nullfont!
+Missing character: There is no 0 in font nullfont!
+Missing character: There is no 0 in font nullfont!
+Missing character: There is no @ in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no u in font nullfont!
+Missing character: There is no d in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no d in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no u in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no d in font nullfont!
+Missing character: There is no k in font nullfont!
+Missing character: There is no 1 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no A in font nullfont!
+Missing character: There is no B in font nullfont!
+Missing character: There is no O in font nullfont!
+Missing character: There is no U in font nullfont!
+Missing character: There is no T in font nullfont!
+Missing character: There is no T in font nullfont!
+Missing character: There is no H in font nullfont!
+Missing character: There is no E in font nullfont!
+Missing character: There is no P in font nullfont!
+Missing character: There is no R in font nullfont!
+Missing character: There is no O in font nullfont!
+Missing character: There is no J in font nullfont!
+Missing character: There is no E in font nullfont!
+Missing character: There is no C in font nullfont!
+Missing character: There is no T in font nullfont!
+Missing character: There is no 2 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no I in font nullfont!
+Missing character: There is no N in font nullfont!
+Missing character: There is no T in font nullfont!
+Missing character: There is no R in font nullfont!
+Missing character: There is no O in font nullfont!
+Missing character: There is no D in font nullfont!
+Missing character: There is no U in font nullfont!
+Missing character: There is no C in font nullfont!
+Missing character: There is no T in font nullfont!
+Missing character: There is no I in font nullfont!
+Missing character: There is no O in font nullfont!
+Missing character: There is no N in font nullfont!
+Missing character: There is no 2 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no 1 in font nullfont!
+Missing character: There is no P in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no b in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no m in font nullfont!
+Missing character: There is no F in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no m in font nullfont!
+Missing character: There is no u in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no 2 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no 2 in font nullfont!
+Missing character: There is no C in font nullfont!
+Missing character: There is no h in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no g in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no s in font nullfont!
+ [1
+
+
+]
+Missing character: There is no 2 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no 3 in font nullfont!
+Missing character: There is no P in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no b in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no u in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no s in font nullfont!
+File: figures/NRG.eps Graphic file (type eps)
+ <figures/NRG.eps>
+Underfull \vbox (badness 2698) has occurred while \output is active []
+
+Missing character: There is no 3 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no O in font nullfont!
+Missing character: There is no V in font nullfont!
+Missing character: There is no E in font nullfont!
+Missing character: There is no R in font nullfont!
+Missing character: There is no V in font nullfont!
+Missing character: There is no I in font nullfont!
+Missing character: There is no E in font nullfont!
+Missing character: There is no W in font nullfont!
+Missing character: There is no O in font nullfont!
+Missing character: There is no F in font nullfont!
+Missing character: There is no T in font nullfont!
+Missing character: There is no H in font nullfont!
+Missing character: There is no E in font nullfont!
+Missing character: There is no S in font nullfont!
+Missing character: There is no Y in font nullfont!
+Missing character: There is no S in font nullfont!
+Missing character: There is no T in font nullfont!
+Missing character: There is no E in font nullfont!
+Missing character: There is no M in font nullfont!
+File: figures/overview.eps Graphic file (type eps)
+
+<figures/overview.eps>
+Missing character: There is no 3 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no 1 in font nullfont!
+Missing character: There is no S in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no g in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no 3 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no 2 in font nullfont!
+Missing character: There is no C in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no c in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no v in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no y in font nullfont!
+ [2]
+Missing character: There is no 3 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no 3 in font nullfont!
+Missing character: There is no P in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no w in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no r in font nullfont!
+File: figures/battery.eps Graphic file (type eps)
+ <figures/battery.eps>
+Missing character: There is no 3 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no 4 in font nullfont!
+Missing character: There is no S in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no 4 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no C in font nullfont!
+Missing character: There is no U in font nullfont!
+Missing character: There is no R in font nullfont!
+Missing character: There is no R in font nullfont!
+Missing character: There is no E in font nullfont!
+Missing character: There is no N in font nullfont!
+Missing character: There is no T in font nullfont!
+Missing character: There is no P in font nullfont!
+Missing character: There is no R in font nullfont!
+Missing character: There is no O in font nullfont!
+Missing character: There is no G in font nullfont!
+Missing character: There is no R in font nullfont!
+Missing character: There is no E in font nullfont!
+Missing character: There is no S in font nullfont!
+Missing character: There is no S in font nullfont!
+Missing character: There is no 4 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no 1 in font nullfont!
+Missing character: There is no T in font nullfont!
+Missing character: There is no h in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no d in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no v in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no c in font nullfont!
+Missing character: There is no e in font nullfont!
+File: figures/topview.eps Graphic file (type eps)
+ <figures/topview.eps>
+Missing character: There is no 4 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no 2 in font nullfont!
+Missing character: There is no T in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no g in font nullfont!
+ [3]
+Missing character: There is no 5 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no P in font nullfont!
+Missing character: There is no L in font nullfont!
+Missing character: There is no A in font nullfont!
+Missing character: There is no N in font nullfont!
+Missing character: There is no N in font nullfont!
+Missing character: There is no I in font nullfont!
+Missing character: There is no N in font nullfont!
+Missing character: There is no G in font nullfont!
+Missing character: There is no 5 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no 1 in font nullfont!
+Missing character: There is no L in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no c in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no n in font nullfont!
+File: figures/southgl1.eps Graphic file (type eps)
+
+<figures/southgl1.eps>
+Missing character: There is no 5 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no 2 in font nullfont!
+Missing character: There is no N in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no k in font nullfont!
+File: figures/nanortalik.eps Graphic file (type eps)
+ <figures/nanortalik.eps>
+Overfull \hbox (40.55971pt too wide) in paragraph at lines 217--218
+ [][] 
+ []
+
+Missing character: There is no 5 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no 3 in font nullfont!
+Missing character: There is no T in font nullfont!
+Missing character: There is no R in font nullfont!
+Missing character: There is no E in font nullfont!
+Missing character: There is no F in font nullfont!
+File: figures/tref.eps Graphic file (type eps)
+<figures/tref.eps>
+Overfull \hbox (14.5471pt too wide) in paragraph at lines 227--228
+ [][] 
+ []
+
+Missing character: There is no 5 in font nullfont!
+Missing character: There is no . in font nullfont!
+Missing character: There is no 4 in font nullfont!
+Missing character: There is no S in font nullfont!
+Missing character: There is no c in font nullfont!
+Missing character: There is no h in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no d in font nullfont!
+Missing character: There is no u in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no e in font nullfont!
+[4] [5
+
+] (./project.aux)
+
+LaTeX Warning: There were multiply-defined labels.
+
+ ) 
+Here is how much of TeX's memory you used:
+ 2006 strings out of 495062
+ 22785 string characters out of 1182644
+ 76620 words of memory out of 3000000
+ 5164 multiletter control sequences out of 15000+50000
+ 10710 words of font info for 34 fonts, out of 3000000 for 9000
+ 28 hyphenation exceptions out of 8191
+ 39i,11n,26p,783b,261s stack positions out of 5000i,500n,10000p,200000b,50000s
+
+Output written on project.dvi (5 pages, 22912 bytes).

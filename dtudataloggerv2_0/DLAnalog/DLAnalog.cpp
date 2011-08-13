@@ -6,7 +6,7 @@
 
 DLAnalog::DLAnalog(uint8_t s0, uint8_t s1, uint8_t s2, uint8_t s3, uint8_t en, uint8_t inp, bool pullup)
 {
-	pinMode(EXT_PWR_PIN, OUTPUT);
+/*	pinMode(EXT_PWR_PIN, OUTPUT);
 	digitalWrite(EXT_PWR_PIN, LOW);
 	pinMode(s0, OUTPUT);
 	pinMode(s1, OUTPUT);
@@ -17,6 +17,7 @@ DLAnalog::DLAnalog(uint8_t s0, uint8_t s1, uint8_t s2, uint8_t s3, uint8_t en, u
 	pinMode(INT1, INPUT);
 	pinMode(inp, INPUT);
 	digitalWrite(inp, pullup);	
+*/
 	_s[0] = s0;
 	_s[1] = s1;
 	_s[2] = s2;
@@ -28,7 +29,6 @@ DLAnalog::DLAnalog(uint8_t s0, uint8_t s1, uint8_t s2, uint8_t s3, uint8_t en, u
 	_measure_time = 60;
 	_int_ptr = NULL;
 	_count_start = 0;
-	memset(_AOD, IO_OFF, sizeof(_AOD));
 }
 
 void DLAnalog::init(double *vals, double *std_dev, uint8_t *count_values, uint16_t measure_time) {
@@ -37,7 +37,22 @@ void DLAnalog::init(double *vals, double *std_dev, uint8_t *count_values, uint16
 	_measure_time = measure_time;
 	_count_vals = count_values;
 	_count_start = 0;
+	pinMode(EXT_PWR_PIN, OUTPUT);
+        digitalWrite(EXT_PWR_PIN, LOW);
+        pinMode(_s[0], OUTPUT);
+        pinMode(_s[1], OUTPUT);
+        pinMode(_s[2], OUTPUT);
+        pinMode(_s[3], OUTPUT);
+        pinMode(_en, OUTPUT);
+	pinMode(_en, LOW);
+        pinMode(INT0, INPUT);
+        pinMode(INT1, INPUT);
+        pinMode(_inp, INPUT);
+	digitalWrite(_inp, LOW);
+	for(uint8_t i=0;i<16;i++)
+		_AOD[i] = IO_OFF;
 	enable();
+	get_bandgap();
 }
 
 void DLAnalog::set_measure_time(uint16_t measure_time) {
@@ -55,6 +70,7 @@ void DLAnalog::disable(){
 void DLAnalog::pwr_on() {
 	digitalWrite(EXT_PWR_PIN, HIGH);
 	delay(50);
+	get_bandgap();
 }
 
 void DLAnalog::pwr_off() {
@@ -80,7 +96,7 @@ uint16_t DLAnalog::read(uint8_t pin){
 	// Since the analog mux is fast enough, we can already read out
 	// the value without delay
 	if (_AOD[pin] == IO_ANALOG) {
-		ret = analogRead(_inp);
+		ret = analogRead(_inp); //map(analogRead(_inp), 0, 1023, 0, _bandgap);
 		_vals[pin] += (double)ret;
 		_std_dev[pin] += (double)ret * (double)ret;
 	}
@@ -89,7 +105,11 @@ uint16_t DLAnalog::read(uint8_t pin){
 		_vals[pin] = (double)ret;
 	}
 	else if (_AOD[pin] == IO_COUNTER) {
-		r = digitalRead(_inp);
+		ret = analogRead(_inp);
+		if (ret > 600)
+			r = 1;
+		else
+			r = 0;
 		if (_count_start == 0) {
 			_count_vals[pin] = 0;
 			_count_start = millis();
@@ -115,9 +135,15 @@ uint8_t DLAnalog::read_all(uint8_t itr){
 	uint16_t v = 0;
 	double tmpv = 0.0;
 	for(uint8_t i = 0; i < 16; i++) {
-		if (_AOD[i] == IO_COUNTER || _AOD[i] == IO_EVENT)
+		if (_AOD[i] == IO_COUNTER || _AOD[i] == IO_EVENT) {
 			read(i);
+			if (_AOD[i] == IO_COUNTER)
+				v = 1;
+		}
 	}
+	if (!v && _count_start == 0) // Set the counter begin when no counters are present
+		_count_start = millis();
+
 	if ((millis()-_count_start) >= MEASURE_RATE && _count_start != 0) {
 		for(uint8_t i=0;i<16;i++) {
 			if (_AOD[i] == IO_COUNTER) {
@@ -131,7 +157,7 @@ uint8_t DLAnalog::read_all(uint8_t itr){
 				//Serial.print(" ");
 				//Serial.println(_std_dev[i], DEC);
 				_count_vals[i] = 0;
-			} else {
+			} else if (_AOD[i] != IO_OFF) {
 				tmpv = read(i);
 				/*if (i == 15) {
 					Serial.print(_sum_cnt, DEC);
@@ -141,7 +167,7 @@ uint8_t DLAnalog::read_all(uint8_t itr){
 					Serial.print(_vals[i], DEC);
 					Serial.print(" ");
 					Serial.println(_std_dev[i], DEC);
-				}*/	
+				}*/
 			}
 		}
 		_count_start = 0;
@@ -210,41 +236,44 @@ uint8_t DLAnalog::get_pin(uint8_t pin) {
 }
 
 void DLAnalog::time_log_line(char *line) {
-	char tmpbuff[11];
+	char tmpbuff[13];
 	uint32_t n = 0;
 	strcpy(line, "T");
 	fmtUnsigned(now(), tmpbuff, 12);
 	strcat(line, tmpbuff);
+	strcat(line, " V");
+	fmtUnsigned(_bandgap, tmpbuff, 12);
+	strcat(line, tmpbuff);
 	for(uint8_t i=0;i<16;i++) {
 		if (_AOD[i] != IO_OFF)
-			strcat(line, "\t");
+			strcat(line, " ");
 
 		if (_AOD[i] == IO_ANALOG) {
 			strcat(line, "a");
 			fmtUnsigned(i, tmpbuff, 10);
 			strcat(line, tmpbuff);
 			strcat(line, ":");
-			fmtDouble((double)_vals[i], 2, tmpbuff, 10);
+			fmtDouble((double)_vals[i], 2, tmpbuff, 12);
 			strcat(line, tmpbuff);
 			strcat(line, ":");
-			fmtDouble((double)_std_dev[i], 2, tmpbuff, 10);
+			fmtDouble((double)_std_dev[i], 2, tmpbuff, 12);
 			strcat(line, tmpbuff);	
 		} else if (_AOD[i] == IO_DIGITAL) {
 			strcat(line, "d");
 			fmtUnsigned(i, tmpbuff, 10);
 			strcat(line, tmpbuff);
 			strcat(line, ":");
-			fmtUnsigned(_vals[i], tmpbuff, 10);
+			fmtUnsigned(_vals[i], tmpbuff, 12);
 			strcat(line, tmpbuff);
 		} else if (_AOD[i] == IO_COUNTER) {
 			strcat(line, "c");
 			fmtUnsigned(i, tmpbuff, 10);
 			strcat(line, tmpbuff);
 			strcat(line, ":");
-			fmtDouble((double)_vals[i], 2, tmpbuff, 10);
+			fmtDouble((double)_vals[i], 2, tmpbuff, 12);
 			strcat(line, tmpbuff);
 			strcat(line, ":");
-			fmtDouble((double)_std_dev[i], 2, tmpbuff, 10);
+			fmtDouble((double)_std_dev[i], 2, tmpbuff, 12);
 			strcat(line, tmpbuff);
 		}
 	}
@@ -252,26 +281,26 @@ void DLAnalog::time_log_line(char *line) {
 }
 
 void DLAnalog::event_log_line(char *line) {
-	char tmpbuff[11];
+	char tmpbuff[13];
 	strcpy(line, "E");
 	fmtUnsigned(now(), tmpbuff, 12);
 	//ltoa(now(), tmpbuff, 16);
 	strcat(line, tmpbuff);
-	strcat(line, "\t");
+	strcat(line, " ");
 	for(uint8_t i=0;i<16;i++) {
 		if (_AOD[i] == IO_EVENT) {
 			if (i != 0)
-				strcat(line, "\t");
+				strcat(line, " ");
 			fmtUnsigned(i, tmpbuff, 10);
 			//itoa(i, tmpbuff, 10);
 			strcat(line, tmpbuff);
 			strcat(line, ":");
-			fmtUnsigned(_vals[i], tmpbuff, 10);
+			fmtUnsigned(_vals[i], tmpbuff, 12);
 			//itoa(_vals[i], tmpbuff, 10);
 			strcat(line, tmpbuff);
 			strcat(line, ":");
 			//ltoa((unsigned long)_std_dev[i], tmpbuff,10);
-			fmtUnsigned(_std_dev[i], tmpbuff, 10);
+			fmtUnsigned(_std_dev[i], tmpbuff, 12);
 			strcat(line, tmpbuff);
 		}
 	}
@@ -281,6 +310,25 @@ void DLAnalog::event_log_line(char *line) {
 float DLAnalog::get_voltage(uint8_t pin) {
 	float r = (_vals[pin] / 1023.0) * VREF;
 	return r;
+}
+
+int DLAnalog::get_bandgap(void)
+{
+        const long InternalReferenceVoltage = 1100L;  // Adust this value to your specific internal BG voltage x1000
+	for(uint8_t i=0;i<3;i++) { // Read out 3 times for it to stabilize
+
+        	// REFS1 REFS0          --> 0 1, AVcc internal ref.
+        	// MUX3 MUX2 MUX1 MUX0  --> 1110 1.1V (VBG)
+       		ADMUX = (0<<REFS1) | (1<<REFS0) | (0<<ADLAR) | (1<<MUX3) | (1<<MUX2) | (1<<MUX1) | (0<<MUX0);
+        	// Start a conversion  
+        	ADCSRA |= _BV( ADSC );
+        	// Wait for it to complete
+        	while( ( (ADCSRA & (1<<ADSC)) != 0 ) );
+        	// Scale the value
+        	_bandgap = (((InternalReferenceVoltage * 1023L) / ADC) + 5L) / 10L;
+	}
+  
+      return _bandgap;
 }
 
 void DLAnalog::debug(uint8_t v) {

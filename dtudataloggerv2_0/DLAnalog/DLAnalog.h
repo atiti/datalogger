@@ -41,6 +41,7 @@ class DLAnalog
 		float get_voltage(uint8_t pin);
 		void time_log_line(char *line);
 		void event_log_line(char *line);
+		int get_bandgap();
 	private:
 		uint8_t _en, _inp;
 		bool _pullup;
@@ -55,6 +56,7 @@ class DLAnalog
 		uint8_t _DEBUG;
 		uint8_t _s[4];
 		uint8_t _AOD[16];
+		int _bandgap;
 		INT_callback _int_ptr;
 };
 

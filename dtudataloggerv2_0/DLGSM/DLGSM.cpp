@@ -52,8 +52,9 @@ PROGMEM const char *gsm_string_table[] = { gsm_string_0, gsm_string_1, gsm_strin
                                            gsm_string_3, gsm_string_4, gsm_string_5, gsm_string_6 };
 
 prog_char sms_string_0[] PROGMEM = "AT+CMGF=1\r\n";
-prog_char sms_string_1[] PROGMEM = "AT+CMGS=\"";
-PROGMEM const char *sms_string_table[] = {  sms_string_0, sms_string_1 };
+prog_char sms_string_1[] PROGMEM = "AT+CSCS=\"IRA\"\r\n";
+prog_char sms_string_2[] PROGMEM = "AT+CMGS=\"";
+PROGMEM const char *sms_string_table[] = {  sms_string_0, sms_string_1, sms_string_2 };
 
 #define GPRSS_LEN 13
 Pchar gprs_state_0[] = "IP IN"; //ITIAL";
@@ -127,8 +128,8 @@ void DLGSM::pwr_on() {
 	}
 }
 
-void DLGSM::pwr_off() {
-	if (CONN_get_flag(CONN_PWR)) {
+void DLGSM::pwr_off(uint8_t force) {
+	if (CONN_get_flag(CONN_PWR) || force) {
 		delay(1000);
 		pinMode(GSM_PWR, OUTPUT);
         	digitalWrite(GSM_PWR, LOW);
@@ -143,6 +144,10 @@ void DLGSM::pwr_off() {
 		CONN_set_flag(CONN_SENDING, 0);
 		CONN_set_flag(CONN_CONNECTED, 0);
 	}
+}
+
+void DLGSM::pwr_off() {
+	pwr_off(0);
 }
 
 uint8_t DLGSM::wake_modem() {
@@ -176,7 +181,7 @@ char* DLGSM::GSM_get_ci() {
 }
 
 uint8_t DLGSM::GSM_init() {
-	pwr_on();
+	//pwr_on();
 	wdt_reset();
 	delay(3000); // Wait 3s for module to stabilize
 
@@ -430,8 +435,12 @@ uint8_t DLGSM::SMS_send(char *nr, char *text, int len) {
 		if (r)
 			break;
 	}
+	get_from_flash(&(sms_string_table[1]), _gsm_buff);
+	GSM_send(_gsm_buff);
+	GSM_process("OK", 30);
+
 	for(c = 0; c<5; c++) {
-		get_from_flash(&(sms_string_table[1]), _gsm_buff);
+		get_from_flash(&(sms_string_table[2]), _gsm_buff);
 		GSM_send(_gsm_buff);
 		GSM_send(nr);
 		GSM_send("\"\r\n");
@@ -446,7 +455,7 @@ uint8_t DLGSM::SMS_send(char *nr, char *text, int len) {
 
 uint8_t DLGSM::SMS_send_end() {
         uint8_t r = 0;
-        //_gsmserial.print(26, BYTE);
+        _gsmserial.print(26, BYTE);
         GSM_send(0x1a);
         r = GSM_process("OK", 30);
         return r;

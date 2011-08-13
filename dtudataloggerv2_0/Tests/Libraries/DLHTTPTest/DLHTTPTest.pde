@@ -1,4 +1,6 @@
+#include <Wire.h>
 #include <NewSoftSerial.h>
+#include <DS1307RTC.h>
 #include <DLCommon.h>
 #include <DLGSM.h>
 #include <DLHTTP.h>
@@ -47,7 +49,7 @@ void digitalClockDisplay(){
 }
 
 void loop() {
-  strcpy(buffer2, "http://attila.patup.com/test.php?id=1");
+  strcpy(buffer2, "http://dl.zsuatt.com/data/2011/");
   uint8_t ret = http.GET(buffer2);
   Serial.print("HTTP Request: ");
   Serial.println(ret, DEC);

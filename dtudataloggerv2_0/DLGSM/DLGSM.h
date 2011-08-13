@@ -49,6 +49,7 @@ class DLGSM
 {
 	public:
 		DLGSM(void);
+		void pwr_off(uint8_t force);
 		void pwr_off();
 		void pwr_on();
 		uint8_t wake_modem();
