@@ -5,7 +5,6 @@
 #include <Wire.h>
 #include <EEPROM.h>
 #include <Time.h>
-#include <DS1307RTC.h>
 #include <SoftwareSerial.h>
 #include <Fat16.h>
 #include <DLCommon.h>
@@ -203,7 +202,7 @@ void setup() {
   Serial.println(memory_test());
 */
 
-  setSyncProvider(RTC.get); // Setup time provider to RTC
+  //setSyncProvider(RTC.get); // Setup time provider to RTC
 /*  if(timeStatus()!= timeSet) { 
     get_from_flash_P(PSTR("RTC fail!"), log_buff);
   } else {
@@ -357,11 +356,12 @@ void loop() {
       gsm.pwr_off(); // Power off module
       
       // Syncronise RTC to server time
-      if (RTC.get() < (now()-360)) {
+/*      if (RTC.get() < (now()-360)) {
         get_from_flash_P(PSTR("RTCB"), log_buff);
         Serial.println(log_buff);
         RTC.set(now());
       }
+*/
       state = lstate; // Done with reporting move to IDLE
       break;
     case UPLOAD: // Upload our files

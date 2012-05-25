@@ -1,4 +1,4 @@
-#include "WProgram.h"
+#include <Arduino.h>
 #include "DLSD.h"
 
 prog_char sd_filename_0[] PROGMEM = "CONFIG";

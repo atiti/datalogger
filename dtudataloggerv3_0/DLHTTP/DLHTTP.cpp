@@ -1,6 +1,5 @@
-#include "WProgram.h"
+#include <Arduino.h>
 #include "DLHTTP.h"
-#include <DS1307RTC.h>
 
 #define Pchar prog_char PROGMEM
 

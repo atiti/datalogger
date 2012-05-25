@@ -1,4 +1,4 @@
-#include "WProgram.h"
+#include <Arduino.h>
 #include "DLAnalog.h"
 
 #define MASK(v,p) (v & (0x1 << p))

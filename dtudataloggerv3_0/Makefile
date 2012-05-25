@@ -59,10 +59,11 @@ $(ARDUINO_HEADERS)/main.cpp \
 
 #ARDUINO_CXX_SRC += $(shell find $(ARDUINO_DIR)/libraries/  -maxdepth 2 -mindepth 2 -type f -name *.cpp -exec /bin/echo -n " {}" \;)
 
+#ARDUINO_CXX_SRC += $(shell find $(ARDUINO_DIR)/libraries/ -type f -name "*.cpp" -exec /bin/echo -n " {}" \;)
 ARDUINO_CXX_SRC += $(shell find ./ -maxdepth 2 -mindepth 2 -type f -name "*.cpp" -exec /bin/echo -n " {}" \;)
 
-CINCS += $(shell find $(ARDUINO_DIR)/libraries/ -maxdepth 1 -type d -exec /bin/echo -n " -I{}" \;) 
-CINCS += $(shell find ./ -maxdepth 1 -type d -exec /bin/echo -n " -I{}" \;)
+#CINCS += $(shell find $(ARDUINO_DIR)/libraries/ -type d -exec /bin/echo -n " -I{}" \;) 
+CINCS += $(shell find ./ -type d -exec /bin/echo -n " -I{}" \;)
 
 CXXSRC=$(ARDUINO_CXX_SRC) $(PROJECT_SRC)
 SRC=$(ARDUINO_SRC)
@@ -190,7 +191,7 @@ clean:
 	$(OBJ) $(LST) $(SRC:.c=.s) $(SRC:.c=.d) $(CXXSRC:.cpp=.s) $(CXXSRC:.cpp=.d)
 
 monitor:
-	screen $(AVRDUDE_PORT) 9600
+	screen $(AVRDUDE_PORT) 57600
 
 .PHONY:	all build elf hex eep lss sym program coff extcoff clean depend
 
