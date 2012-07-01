@@ -11,7 +11,7 @@ PROGMEM const char *sd_filename_table[] = {sd_filename_0, sd_filename_1 };
 
 prog_char sd_filename_ext[] PROGMEM = ".DAT";
 
-DLSD::DLSD(bool fullspeed, uint8_t CS)
+DLSD::DLSD(char fullspeed, uint8_t CS)
 {
 	_CS = CS;
 	_inited = 0;
@@ -25,7 +25,7 @@ int8_t DLSD::init() {
 //	if (_fullspeed)
 //		ret = _card.init(SPI_FULL_SPEED, _CS);
 //	else
-	ret = _card.init();
+	ret = _card.init(_fullspeed, _CS);
 	if (!ret) { // Failed to initialize card
 		_inited = -1;
 		return -1;

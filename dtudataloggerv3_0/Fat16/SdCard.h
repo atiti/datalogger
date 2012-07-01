@@ -33,7 +33,7 @@ uint8_t const SPI_SS_PIN   = 53;
 uint8_t const SPI_MOSI_PIN = 51;
 uint8_t const SPI_MISO_PIN = 50;
 uint8_t const SPI_SCK_PIN  = 52;
-#elif defined(__AVR_ATmega644P__) || defined(__AVR_ATmega644__)
+#elif defined(__AVR_ATmega644P__) || defined(__AVR_ATmega644__) || defined (__AVR_ATmega1284P__)
 // pins for Sanguino
 uint8_t const SPI_SS_PIN   = 4;
 uint8_t const SPI_MOSI_PIN = 5;

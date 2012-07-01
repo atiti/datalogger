@@ -4,7 +4,7 @@
 
 #define Pchar prog_char PROGMEM
 
-#define GSM_INIT_LEN 4
+#define GSM_INIT_LEN 5
 Pchar gsm_init_string_0[] = "AT\r\n";
 Pchar gsm_init_string_1[] = "ATE0\r\n";
 //#ifdef GSM_SW_FLOW
@@ -16,8 +16,9 @@ Pchar gsm_init_string_1[] = "ATE0\r\n";
 //Pchar gsm_init_string_4[] = "AT+CSQ\r\n";
 Pchar gsm_init_string_2[] = "AT+CREG=2\r\n";
 Pchar gsm_init_string_3[] = "AT+CGREG=2\r\n";
+Pchar gsm_init_string_4[] = "AT+IPR=57600\r\n";
 PROGMEM const char *gsm_init_string_table[] = { gsm_init_string_0, gsm_init_string_1, gsm_init_string_2,
-                                                gsm_init_string_3 }; ///,
+                                                gsm_init_string_3, gsm_init_string_4 }; ///,
                                                 //gsm_init_string_6 };
 
 #define GPRS_INIT_ATTACH_CMD 9
@@ -82,7 +83,13 @@ PROGMEM const char *gprs_state_table[] = { gprs_state_0, gprs_state_1, gprs_stat
                         Serial.print(v); \
                         } \
 
+#define HW_SERIAL
+
+#ifdef HW_SERIAL
+#define _gsmserial Serial1
+#else
 SoftwareSerial _gsmserial(GSM_RX, GSM_TX);
+#endif
 
 DLGSM::DLGSM()
 {
@@ -294,7 +301,7 @@ uint8_t DLGSM::GSM_fast_read(char *until, FUN_callback fun) {
 			cdown--;
 			if (cdown <= 0)
 				return 0;
-			delay(10);
+			delay(1);
 		}
 
 	}	
@@ -374,7 +381,7 @@ int DLGSM::GSM_recvline_fast(char *ptr, int len) {
 
 int DLGSM::GSM_recvline(char *ptr, int len) {
 	char curchar[2];
-	int i = 0, a=0, c = 0;
+	int i = 0, a=0, c = 0, tout=0;
 	// Read the first 2 bytes (should be the beginning of a reply)
 	for(i=0;i<2;i++) {
 		if (_gsmserial.available())
@@ -392,9 +399,11 @@ int DLGSM::GSM_recvline(char *ptr, int len) {
 	}
 	// Read the rest of the line
 	curchar[0] = 0;
+	tout=100;
 	while (i < len) {
 		a = _gsmserial.available();
 		if (a > 0) {
+			tout=100;
 			for(c=0;c<a && curchar[0] != '\n' && i < len;c++){
 				curchar[0] = _gsmserial.read();
 				ptr[i] = curchar[0];
@@ -404,6 +413,9 @@ int DLGSM::GSM_recvline(char *ptr, int len) {
 				ptr[i] = 0;
 				break;
 			}
+		} else if (tout > 0) {
+			tout--;
+			delay(1);
 		} else {
 			ptr[i] = 0;
       			break;
@@ -628,5 +640,20 @@ int8_t DLGSM::GPRS_check_conn_state() {
 		}
 	}
 	return -1;
+}
+
+int8_t DLGSM::GSM_event_handler() {
+	char i = 0;
+	if (!_gsmserial.available()) return 0;
+
+	i = GSM_recvline(_gsm_buff, _gsm_buffsize);
+	if (i > 0) {
+		// Call arriving, hang up?
+		if (_gsm_buff[0] == 'R') {
+			GSM_send("ATH\r\n");			
+			return GSM_EVENT_STATUS_REQ;
+		}
+	} 
+	return 0;
 }
 

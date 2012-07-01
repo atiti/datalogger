@@ -5,6 +5,7 @@
 #include <Wire.h>
 #include <EEPROM.h>
 #include <Time.h>
+#include <PCF8583.h>
 #include <SoftwareSerial.h>
 #include <Fat16.h>
 #include <DLCommon.h>
@@ -41,9 +42,9 @@ long last_measure = millis();
 time_t start_measure = now();
 time_t last_status = 0; 
 time_t last_upload = 0; 
-uint8_t initial_start = 0; // Set this to 3 not to send SMS
+uint8_t initial_start = 3; // Set this to 3 not to send SMS
 // SD setup
-DLSD sd(true, 10); // Setup FULL_SPEED SPI and CS on pin 10
+DLSD sd(0, 4); // Setup FULL_SPEED SPI and CS on pin 10
 unsigned long filesize = 0;
 
 // GSM
@@ -61,6 +62,7 @@ char log_buff[LOG_BUFF_SIZE];
 char gsm_buff[GSM_BUFF_SIZE];
 char smallbuff[12];
 uint16_t p, u, v;
+char ret = 0;
 
 void int_routine() {
   analog.read_all(1);
@@ -97,7 +99,7 @@ uint8_t upload_file(uint8_t fd) {
        break;     
     }
     // Here the request header is constructed
-    strcpy_P(log_buff, PSTR("http://dl.zsuatt.com/upload.php"));
+    strcpy_P(log_buff, PSTR("http://dl2.zsuatt.com/upload.php"));
     strcat_P(log_buff, PSTR("?id="));   // Datalogger ID
     fmtUnsigned(config->id, smallbuff, 10);
     strcat(log_buff, smallbuff);
@@ -197,33 +199,39 @@ void setup() {
   
   
 /* lot of flash
+*/
   get_from_flash_P(PSTR("Mem: "), log_buff);
   Serial.print(log_buff);
   Serial.println(memory_test());
-*/
 
-  //setSyncProvider(RTC.get); // Setup time provider to RTC
-/*  if(timeStatus()!= timeSet) { 
+
+  setSyncProvider(RTC.get); // Setup time provider to RTC
+  if(timeStatus()!= timeSet) { 
     get_from_flash_P(PSTR("RTC fail!"), log_buff);
   } else {
     get_from_flash_P(PSTR("RTC ok!"), log_buff);
   }
   Serial.println(log_buff); 
- */
+ 
+
   // SD init
-  sd.debug(1); // No debugging
-  v = sd.init();
- /* if (v == 1)
-    get_from_flash_P(PSTR("SD ok!"), log_buff);
-  else
-    get_from_flash_P(PSTR("SD fail!"), log_buff);
-  Serial.println(log_buff);
-  */
+  sd.debug(1);
+  while (ret != 1) { // No debugging
+  	ret = sd.init();
+ 	if (ret == 1)
+    		get_from_flash_P(PSTR("SD ok!"), log_buff);
+ 	else
+    		get_from_flash_P(PSTR("SD fail!"), log_buff);
+ 	Serial.println(log_buff);
+  	Serial.println(ret,DEC);
+	delay(1000);
+  }
+ 
  
   // AT this point we proceed, but RTC/SD might be broken...
     
-  analog.init(analog_values, std_dev, count_values, 600); // Initialize IO with buffers
-  analog.set_int_fun(int_routine); // Set up the interrupt handler for events
+  analog.init(analog_values, std_dev, count_values, 60); // Initialize IO with buffers
+  //analog.set_int_fun(int_routine); // Set up the interrupt handler for events
   analog.debug(1); // Turn on analog debug
 
     // Config file loading
@@ -244,6 +252,7 @@ void setup() {
       break; 
     }
   }
+  Serial.println("GSM ye");
 
   // HTTP stack on GSM
   http.init(gsm_buff, &gsm);
@@ -251,7 +260,9 @@ void setup() {
   last_status = now(); //0;
   last_upload = now();
     
-  wdt_enable(WDTO_8S);
+  Serial.println("Entering main loop");
+  delay(3000);
+  //wdt_enable(WDTO_8S);
 }
 
 void loop() {
@@ -261,6 +272,10 @@ void loop() {
       cfg.load_files_count(0);
       cfg.load_files_count(1);
       config = cfg.get_config();
+      if (config->http_status_time == 0)
+	config->http_status_time = 10000;
+      if (config->http_upload_time == 0)
+	config->http_upload_time = 60000;
       state = IDLE;
       break;
     case IDLE: // General maintenance
@@ -298,6 +313,7 @@ void loop() {
         analog.time_log_line(log_buff);   
         if (sd.is_available() < 0)
           sd.init();
+	wdt_reset();
         filesize = sd.open(DATALOG, O_RDWR | O_CREAT | O_APPEND);
         if (filesize > MAX_FILESIZE) {
           sd.close(DATALOG);
@@ -309,7 +325,7 @@ void loop() {
         sd.write(DATALOG, log_buff);
         sd.close(DATALOG);
         //analog.pwr_off();
-      
+     	wdt_reset(); 
         if (initial_start < 3) {
           gsm.pwr_on();
           gsm.wake_modem();
@@ -326,7 +342,7 @@ void loop() {
       }
       break;
     case STATUS: // Report status to server
-      strcpy_P(log_buff, PSTR("http://dl.zsuatt.com/status.php"));
+      strcpy_P(log_buff, PSTR("http://dl2.zsuatt.com/status.php"));
       strcat_P(log_buff, PSTR("?id="));
       fmtUnsigned(config->id, smallbuff, 10);
       strcat(log_buff, smallbuff);
@@ -356,12 +372,12 @@ void loop() {
       gsm.pwr_off(); // Power off module
       
       // Syncronise RTC to server time
-/*      if (RTC.get() < (now()-360)) {
+      if (RTC.get() < (now()-360) || RTC.get() > (now()+360)) {
         get_from_flash_P(PSTR("RTCB"), log_buff);
         Serial.println(log_buff);
         RTC.set(now());
       }
-*/
+
       state = lstate; // Done with reporting move to IDLE
       break;
     case UPLOAD: // Upload our files
@@ -441,4 +457,8 @@ void loop() {
     } */
   }
   wdt_reset(); 
+  v = gsm.GSM_event_handler();
+  if (v == GSM_EVENT_STATUS_REQ) {
+	state = STATUS;
+  }
 }

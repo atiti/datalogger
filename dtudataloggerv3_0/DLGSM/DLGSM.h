@@ -12,7 +12,8 @@
 #define WATCHDOG 1
 
 #define GSM_PWR 9
-#define GSM_BAUD 9600
+//#define GSM_BAUD 9600
+#define GSM_BAUD 57600
 #define GSM_RX 7
 #define GSM_TX 8
 #undef GSM_SW_FLOW
@@ -37,6 +38,10 @@
 #define CONN_SENDING 0x2
 #define CONN_NETWORK 0x4
 #define CONN_PWR 0x8
+
+#define GSM_EVENT_STATUS_REQ 1
+#define GSM_EVENT_LIVE 2
+
 
 typedef struct {
 	uint8_t ip[4];
@@ -90,6 +95,7 @@ class DLGSM
 		void CONN_set_flag(uint8_t f, uint8_t v);
 		char* GSM_get_lac();
 		char* GSM_get_ci();
+		int8_t GSM_event_handler();
 	private:
 		FUN_callback _gsm_callback;
 		bool _gsminit;

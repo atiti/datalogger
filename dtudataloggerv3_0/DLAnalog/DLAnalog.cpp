@@ -6,18 +6,6 @@
 
 DLAnalog::DLAnalog(uint8_t s0, uint8_t s1, uint8_t s2, uint8_t s3, uint8_t en, uint8_t inp, bool pullup)
 {
-/*	pinMode(EXT_PWR_PIN, OUTPUT);
-	digitalWrite(EXT_PWR_PIN, LOW);
-	pinMode(s0, OUTPUT);
-	pinMode(s1, OUTPUT);
-	pinMode(s2, OUTPUT);
-	pinMode(s3, OUTPUT);
-	pinMode(en, OUTPUT);
-	pinMode(INT0, INPUT);
-	pinMode(INT1, INPUT);
-	pinMode(inp, INPUT);
-	digitalWrite(inp, pullup);	
-*/
 	_s[0] = s0;
 	_s[1] = s1;
 	_s[2] = s2;
@@ -52,11 +40,11 @@ void DLAnalog::init(double *vals, double *std_dev, uint8_t *count_values, uint16
 	for(uint8_t i=0;i<16;i++)
 		_AOD[i] = IO_OFF;
 	enable();
-	get_bandgap();
+//	get_bandgap();
 }
 
 void DLAnalog::set_measure_time(uint16_t measure_time) {
-//	_measure_time = measure_time;
+	_measure_time = measure_time;
 }
 
 void DLAnalog::enable() {
@@ -83,9 +71,6 @@ uint16_t DLAnalog::read(uint8_t pin){
 	uint8_t r = 0;
 	if (_AOD[pin] == IO_OFF)
 		return 0;
-
-	if (!_smeasure)
-		_smeasure = now();
 
 	for(uint8_t i=0;i<4;i++) {  // Set up the address for the read
 		if ((pin & (0x1 << i)) > 0)
@@ -184,6 +169,8 @@ uint8_t DLAnalog::read_all() {
 
 uint8_t DLAnalog::get_all() {
 	uint8_t rdy = 0;
+	//Serial.println(now());
+	//Serial.println(_smeasure);
 	if (((now() - _smeasure) >= _measure_time) && _smeasure != 0) {
 		for(uint8_t i=0;i<16;i++) {
 			if (_AOD[i] == IO_ANALOG) { // Only process analog
@@ -226,7 +213,7 @@ void DLAnalog::set_int_fun(INT_callback fun) {
 
 void DLAnalog::set_pin(uint8_t pin, uint8_t doa){
 	if ((pin == 0 || pin == 1) && doa == IO_EVENT && _int_ptr) {
-		attachInterrupt(pin, (INT_callback)_int_ptr, CHANGE);
+//		attachInterrupt(pin, (INT_callback)_int_ptr, CHANGE);
 	}
 	_AOD[pin] = doa;
 }

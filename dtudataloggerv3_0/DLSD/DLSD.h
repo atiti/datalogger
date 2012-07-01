@@ -18,7 +18,7 @@
 class DLSD
 {
 	public:
-		DLSD(bool fullspeed, uint8_t CS_pin);
+		DLSD(char fullspeed, uint8_t CS_pin);
 		void debug(int v);
 		int8_t init();
 		uint8_t get_num_files();
@@ -44,7 +44,7 @@ class DLSD
 		bool seek(uint8_t n, uint32_t pos);
 		bool seekend(uint8_t n);
 	private:
-		bool _fullspeed;
+		char _fullspeed;
 		uint8_t _CS;
 		uint8_t _DEBUG;
 		int8_t _inited;

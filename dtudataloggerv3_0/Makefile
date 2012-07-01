@@ -3,7 +3,8 @@ TARGET=datalogger
 MCU=atmega1284p
 F_CPU=16000000
 FORMAT=ihex
-UPLOAD_RATE=115200
+#UPLOAD_RATE=115200
+UPLOAD_RATE=19200
 ARDUINO_DIR=/home/atiti/Documents/arduino-1.0
 ARDUINO_VARIANT=$(ARDUINO_DIR)/hardware/mighty-1284p/variants/standard/
 AVR_BIN=/usr/bin/ # avr-gcc bin
@@ -11,7 +12,8 @@ DEBUG= # Debugging (stabs)
 OPT=s  # Optimization
 AVRDUDE_BIN=$(ARDUINO_DIR)/hardware/tools/avrdude 
 AVRDUDE_PROGRAMMER=arduino #stk500v1
-AVRDUDE_PORT=/dev/ttyUSB0
+#AVRDUDE_PORT=/dev/ttyUSB0
+AVRDUDE_PORT=/dev/ttyACM0
 AVRDUDE_CONF=$(ARDUINO_DIR)/hardware/tools/avrdude.conf
 
 PROJECT_SRC=datalogger.cpp
@@ -60,10 +62,13 @@ $(ARDUINO_HEADERS)/main.cpp \
 #ARDUINO_CXX_SRC += $(shell find $(ARDUINO_DIR)/libraries/  -maxdepth 2 -mindepth 2 -type f -name *.cpp -exec /bin/echo -n " {}" \;)
 
 #ARDUINO_CXX_SRC += $(shell find $(ARDUINO_DIR)/libraries/ -type f -name "*.cpp" -exec /bin/echo -n " {}" \;)
+ARDUINO_SRC += $(shell find ./ -maxdepth 3 -mindepth 2 -type f -name "*.c" -exec /bin/echo -n " {}" \;)
+
 ARDUINO_CXX_SRC += $(shell find ./ -maxdepth 2 -mindepth 2 -type f -name "*.cpp" -exec /bin/echo -n " {}" \;)
 
 #CINCS += $(shell find $(ARDUINO_DIR)/libraries/ -type d -exec /bin/echo -n " -I{}" \;) 
-CINCS += $(shell find ./ -type d -exec /bin/echo -n " -I{}" \;)
+#CINCS += $(shell find ./ -type d -exec /bin/echo -n " -I{}" \;)
+CINCS += $(shell find ./ -type d -name '\.git*' -prune -o -type d -exec /bin/echo -n " -I{}" \;)
 
 CXXSRC=$(ARDUINO_CXX_SRC) $(PROJECT_SRC)
 SRC=$(ARDUINO_SRC)
