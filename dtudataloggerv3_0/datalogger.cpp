@@ -48,13 +48,13 @@ DLSD sd(0, 4); // Setup FULL_SPEED SPI and CS on pin 10
 unsigned long filesize = 0;
 
 // GSM
-#define GSM_BUFF_SIZE 60
+#define GSM_BUFF_SIZE 200
 DLGSM gsm;
 
 // HTTP
 DLHTTP http;
 
-#define LOG_BUFF_SIZE 111
+#define LOG_BUFF_SIZE 2048
 time_t lt = now();
 uint8_t state = LOAD_CONFIG; // lets start at IDLE state
 uint8_t lstate = IDLE;

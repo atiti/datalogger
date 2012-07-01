@@ -191,7 +191,7 @@ char* DLGSM::GSM_get_ci() {
 uint8_t DLGSM::GSM_init() {
 	//pwr_on();
 	wdt_reset();
-	delay(3000); // Wait 3s for module to stabilize
+	delay(2000); // Wait 3s for module to stabilize
 
 	for(int k=0;k<GSM_INIT_LEN;k++) {
 #ifdef WATCHDOG
@@ -255,6 +255,8 @@ uint8_t DLGSM::GSM_process(char *check) {
 				CONN_set_flag(CONN_SENDING, 0);	
 			} else if (_gsm_buff[0] == 'C' && _gsm_buff[10] == 'K') { // CONNECT OK
 			//} else if (strncmp_P(_gsm_buff, PSTR("CONNECT OK"),10) == 0) {
+				CONN_set_flag(CONN_CONNECTED, 1);
+			} else if (_gsm_buff[0] == 'A' && _gsm_buff[1] == 'L') { // ALREADY CONNECT
 				CONN_set_flag(CONN_CONNECTED, 1);
 			}
 			if (check != NULL) {
