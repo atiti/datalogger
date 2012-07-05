@@ -5,6 +5,10 @@
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <Time.h>
+#include <pt.h>
+
+#define USE_PT
+
 
 #ifndef cbi
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))

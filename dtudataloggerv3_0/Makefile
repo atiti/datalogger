@@ -1,22 +1,24 @@
 # Configuring target etc
-TARGET=datalogger
+TARGET=datalogger_skel
 MCU=atmega1284p
 F_CPU=16000000
 FORMAT=ihex
 #UPLOAD_RATE=115200
 UPLOAD_RATE=19200
-ARDUINO_DIR=/home/atiti/Documents/arduino-1.0
+ARDUINO_DIR=/home/attila/Documents/arduino-1.0.1
 ARDUINO_VARIANT=$(ARDUINO_DIR)/hardware/mighty-1284p/variants/standard/
 AVR_BIN=/usr/bin/ # avr-gcc bin
 DEBUG= # Debugging (stabs)
 OPT=s  # Optimization
-AVRDUDE_BIN=$(ARDUINO_DIR)/hardware/tools/avrdude 
+#AVRDUDE_BIN=$(ARDUINO_DIR)/hardware/tools/avrdude 
+AVRDUDE_BIN=/usr/bin/avrdude
 AVRDUDE_PROGRAMMER=arduino #stk500v1
 #AVRDUDE_PORT=/dev/ttyUSB0
-AVRDUDE_PORT=/dev/ttyACM0
-AVRDUDE_CONF=$(ARDUINO_DIR)/hardware/tools/avrdude.conf
+AVRDUDE_PORT=/dev/ttyACM3
+#AVRDUDE_CONF=$(ARDUINO_DIR)/hardware/tools/avrdude.conf
+AVRDUDE_CONF=/etc/avrdude.conf
 
-PROJECT_SRC=datalogger.cpp
+PROJECT_SRC=datalogger_skel.cpp
 
 # Do not edit below
 # C/C++ headers etc
@@ -196,7 +198,7 @@ clean:
 	$(OBJ) $(LST) $(SRC:.c=.s) $(SRC:.c=.d) $(CXXSRC:.cpp=.s) $(CXXSRC:.cpp=.d)
 
 monitor:
-	screen $(AVRDUDE_PORT) 57600
+	screen -ah 5000 $(AVRDUDE_PORT) 57600
 
 .PHONY:	all build elf hex eep lss sym program coff extcoff clean depend
 

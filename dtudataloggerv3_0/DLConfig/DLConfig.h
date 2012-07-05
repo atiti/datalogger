@@ -7,7 +7,7 @@
 #include <EEPROM.h>
 #include <DLCommon.h>
 #include <DLSD.h>
-#include <DLAnalog.h>
+#include <DLMeasure.h>
 
 typedef struct {
 	uint16_t id;
@@ -28,7 +28,7 @@ class DLConfig
 {
 	public:
 		DLConfig();
-		void init(DLSD *sd, DLAnalog *analog, char *buff, int len);
+		void init(DLSD *sd, DLMeasure *measure, char *buff, int len);
 		int log_process_callback(char *line, int len);
 		uint8_t load();
 		uint8_t load_string_EEPROM(uint16_t addr, char *data, int len);
@@ -43,7 +43,7 @@ class DLConfig
 	private:
 		Config *_config;
 		DLSD *_sd;
-		DLAnalog *_analog;
+		DLMeasure *_measure;
 		char *_buff;
 		int _buff_size;
 };

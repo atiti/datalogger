@@ -56,10 +56,29 @@ class DLGSM
 		void pwr_off(uint8_t force);
 		void pwr_off();
 		void pwr_on();
+#ifdef USE_PT
+		int PT_recvline(struct pt *pt, char *ret, char *ptr, int len, int tout, char process);
+		int PT_recv(struct pt *pt, char *ret, char *conf, int tout);
+		int PT_send_recv(struct pt *pt, char *ret, char *cmd, int tout);
+		int PT_send_recv_confirm(struct pt *pt, char *ret, char *cmd, char *conf, int tout);
+		int PT_GSM_init(struct pt *pt, char *ret);
+		int PT_GPRS_init(struct pt *pt, char *ret);
+		int PT_GPRS_check_conn_state(struct pt *pt, char *ret);
+		int PT_GSM_event_handler(struct pt *pt, char *ret);
+		int PT_SMS_send(struct pt *pt, char *ret, char *nr, char *text, int len);
+		int PT_SMS_send_end(struct pt *pt);
+		int PT_GPRS_connect(struct pt *pt, char *ret, char *server, short port, bool proto);
+		int PT_GPRS_send_start(struct pt *pt, char *ret);
+		int PT_GPRS_send_end(struct pt *pt, char *ret);
+		int PT_GPRS_close(struct pt *pt, char *ret);
+		uint8_t wake_modem(struct pt *pt);
+#else
 		uint8_t wake_modem();
+#endif
 		void init(char *buff, int buffsize, uint8_t tout);
 		void debug(uint8_t v);
 		uint8_t GSM_init();
+		uint8_t GSM_process_line(char *check);	
 		uint8_t GSM_process(char *check);
 		uint8_t GSM_process(char *check, uint8_t tout);
 		void GSM_send(char b);
@@ -96,6 +115,7 @@ class DLGSM
 		char* GSM_get_lac();
 		char* GSM_get_ci();
 		int8_t GSM_event_handler();
+		int8_t available();
 	private:
 		FUN_callback _gsm_callback;
 		bool _gsminit;
@@ -105,6 +125,7 @@ class DLGSM
 		uint8_t _gsm_ret;
 		char _gsm_lac[5];
 		char _gsm_ci[5];
+		char _gsm_wline;
 		uint16_t _sendsize;
 		Connection _c;
 		uint8_t _DEBUG;

@@ -31,10 +31,10 @@ DLConfig::DLConfig()
 	_sd = NULL;
 }
 
-void DLConfig::init(DLSD *sd, DLAnalog *analog, char *buff, int len) {
+void DLConfig::init(DLSD *sd, DLMeasure *measure, char *buff, int len) {
 	_config = &_int_config;
 	_sd = sd;
-	_analog = analog;
+	_measure = measure;
 	_buff = buff;
 	_buff_size = len-1;
 }
@@ -56,13 +56,13 @@ int DLConfig::log_process_callback(char *line, int len) {
 			Serial.print(": ");
 			Serial.println(param);
 			if (param[1] == 'A') { // Analog
-				_analog->set_pin(tmpvar, IO_ANALOG); 
+				_measure->set_pin(tmpvar, IO_ANALOG); 
 			} else if (param[1] == 'C') { // Counter
-				_analog->set_pin(tmpvar, IO_COUNTER);
+				_measure->set_pin(tmpvar, IO_COUNTER);
 			} else if (param[1] == 'D') { // Digital
-				_analog->set_pin(tmpvar, IO_DIGITAL);
+				_measure->set_pin(tmpvar, IO_DIGITAL);
 			} else if (param[1] == 'E') { // Event
-				_analog->set_pin(tmpvar, IO_EVENT);
+				_measure->set_pin(tmpvar, IO_EVENT);
 			}
                 }
         } else if (strncmp_P(line, PSTR("ID"), 2) == 0) {
@@ -82,7 +82,7 @@ int DLConfig::log_process_callback(char *line, int len) {
 			get_from_flash_P(PSTR("MESTIME: "), _buff);
 			Serial.print(_buff);
 			Serial.println(_config->measure_time, DEC);
-			_analog->set_measure_time(_config->measure_time);	
+			_measure->set_measure_time(_config->measure_time);	
 		} else if (line[8] == 'L') { // MEAUSURE_LENGTH
 			_config->measure_length = atoi(param);
 			get_from_flash_P(PSTR("MESLEN: "), _buff);

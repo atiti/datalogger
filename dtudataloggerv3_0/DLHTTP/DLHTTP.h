@@ -8,12 +8,23 @@
 #include <string.h>
 #include <DLGSM.h>
 
+static struct pt http_child_pt;
+
 class DLHTTP
 {
 	public:
 		DLHTTP();
 		void debug(int v);
 		void init(char *http_buff, DLGSM *gsmptr);
+#ifdef USE_PT
+		int PT_backend_start(struct pt *pt, char *ret, char *host, uint16_t port);
+		int PT_backend_end(struct pt *pt, char *ret);
+		int PT_GET(struct pt *pt, char *ret, char *url);
+		int PT_POST_start(struct pt *pt, char *ret, char *url);
+		int PT_POST_start(struct pt *pt, char *ret, char *url, int cl);
+		int PT_POST(struct pt *pt, char *ret, char *data, int len);
+		int PT_POST_end(struct pt *pt, char *ret);
+#endif		
 		uint8_t backend_start(char *host, uint16_t port);
 		uint8_t backend_end();
 		uint8_t get_err_code();

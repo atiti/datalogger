@@ -31,18 +31,165 @@ void DLHTTP::init(char *http_buff, DLGSM *ptr) {
 	_sent = 0;
 }
 
+#ifdef USE_PT
+int DLHTTP::PT_backend_start(struct pt *pt, char *ret, char *host, uint16_t port) {
+	static struct pt child_pt;
+
+	PT_BEGIN(pt);
+
+
+	PT_WAIT_THREAD(pt, _gsm->PT_GPRS_connect(&child_pt, ret, host, port, true));
+	if (*ret != 1) {
+		PT_RESTART(pt);
+	}
+
+
+	PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_start(&child_pt, ret));
+
+	PT_END(pt);
+}
+
+int DLHTTP::PT_backend_end(struct pt *pt, char *ret) {
+	static struct pt child_pt;
+	PT_BEGIN(pt);
+	PT_WAIT_THREAD(pt, _gsm->PT_GPRS_close(&child_pt, ret));
+	PT_END(pt);
+}
+
+int DLHTTP::PT_GET(struct pt *pt, char *ret, char *url) {
+	static struct pt child_pt;
+        static char *host, *query_string;
+
+	PT_BEGIN(pt);
+        parse_url(url, &host, &query_string);
+
+	PT_WAIT_UNTIL(pt, PT_backend_start(&child_pt, ret, host, 80));
+
+        get_from_flash_P(PSTR("GET /"), _http_buff);
+        _gsm->GPRS_send(_http_buff);
+        Serial.println(query_string);
+        _gsm->GPRS_send(query_string);     // Send the head of the request
+        get_from_flash_P(PSTR(" HTTP/1.1\r\n"), _http_buff);
+        _gsm->GPRS_send(_http_buff);
+        get_from_flash_P(PSTR("Host: "), _http_buff);
+        _gsm->GPRS_send(_http_buff);
+        _gsm->GPRS_send(host);    // Send virtual host
+        _gsm->GPRS_send("\r\n");
+        for(int k=0;k<HTTP_HEADERS_LEN;k++) {
+                get_from_flash(&(header_string_table[k]), _http_buff);
+                _gsm->GPRS_send(_http_buff);
+        }
+        _gsm->GPRS_send("\r\n"); // Trailing \r\n to finish the header
+        
+	PT_WAIT_UNTIL(pt, _gsm->PT_GPRS_send_end(&child_pt, ret));
+
+        PT_WAIT_THREAD(pt, _gsm->PT_recv(&child_pt, ret, "CLOSED", 3000));
+        
+	PT_WAIT_THREAD(pt, PT_backend_end(&child_pt, ret));
+
+	PT_END(pt);
+}
+
+int DLHTTP::PT_POST_start(struct pt *pt, char *ret, char *url) {
+	static struct pt child_pt;
+	PT_BEGIN(pt);
+	
+	PT_WAIT_UNTIL(pt, PT_POST_start(&child_pt, ret, url, 0));
+
+	PT_END(pt);
+}
+
+int DLHTTP::PT_POST_start(struct pt *pt, char *ret, char *url, int cl) {
+	static struct pt child_pt;
+        static char *host, *query_string;
+	PT_BEGIN(pt);
+
+        parse_url(url, &host, &query_string);
+
+	PT_WAIT_UNTIL(pt, PT_backend_start(&child_pt, ret, host, 80));
+        
+	get_from_flash_P(PSTR("POST /"), _http_buff);
+        _gsm->GPRS_send(_http_buff);
+        _gsm->GPRS_send(query_string);
+        get_from_flash_P(PSTR(" HTTP/1.1\r\n"), _http_buff);
+        _gsm->GPRS_send(_http_buff);
+        get_from_flash_P(PSTR("Host: "), _http_buff);
+        _gsm->GPRS_send(_http_buff);
+        _gsm->GPRS_send(host);
+        _gsm->GPRS_send("\r\n");
+        get_from_flash_P(PSTR("Content-Length: "), _http_buff);
+        _gsm->GPRS_send(_http_buff);
+        _gsm->GPRS_send(cl);
+        _gsm->GPRS_send("\r\n");
+
+        for(int k=0;k<HTTP_HEADERS_LEN;k++) {
+                get_from_flash(&(header_string_table[k]), _http_buff);
+                _gsm->GPRS_send(_http_buff);
+        }
+        _gsm->GPRS_send("\r\n");
+        
+        PT_WAIT_UNTIL(pt, _gsm->PT_GPRS_send_end(&child_pt, ret));
+
+	*ret = 1;
+	PT_END(pt);
+}
+
+int DLHTTP::PT_POST(struct pt *pt, char *ret, char *data, int len) {
+	static struct pt child_pt;
+	PT_BEGIN(pt);
+        if (data) {
+                if (_sent == 0) {
+                	PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_start(&child_pt, ret)); 
+		}
+                _sent += len;
+                if (_sent > _gsm->GPRS_send_get_size()) {
+                        Serial.println("Data exceed.");
+			PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_end(&child_pt, ret));
+                        _sent = len;
+			PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_start(&child_pt, ret));
+                }
+                Serial.print("Sent: ");
+                Serial.println(_sent, DEC);
+                _gsm->GPRS_send_raw(data, len);
+		*ret = 1;
+/*              if (_sent == 0)
+                        _gsm->GPRS_send_start();        
+                _gsm->GPRS_send_raw(data, len);
+                _sent += len;
+                if (_sent >= 1000) {
+                        _gsm->GPRS_send_end();
+                        _sent = 0;
+                }
+*/
+	
+        } else {
+		*ret = 0;
+	}
+	PT_END(pt);
+}
+
+int DLHTTP::PT_POST_end(struct pt *pt, char *ret) {
+	static struct pt child_pt;
+	PT_BEGIN(pt);
+
+        PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_end(&child_pt, ret));
+
+        PT_WAIT_THREAD(pt, _gsm->PT_recv(&child_pt, ret, "CLOSED", 3000));
+
+	PT_WAIT_THREAD(pt, PT_backend_end(&child_pt, ret));
+	
+	PT_END(pt);
+}
+
+#endif
+
 uint8_t DLHTTP::backend_start(char *host, uint16_t port) {
 	int s = 0;
 	uint8_t j = 0;
 	_gsm->pwr_on();
 	backend_err = 999;
 	for(j=0;j<10;j++) {
-//#ifdef WATCHDOG
-//		wdt_reset();
-//#endif
-//		s = _gsm->GPRS_check_conn_state();
-//		if (s >= GPRSS_IP_STATUS && s < GPRSS_PDP_DEACT) {
-		s = _gsm->wake_modem();
+		//s = _gsm->wake_modem();
 		if (s) {
 			s = _gsm->GPRS_connect(host, port, true);
 			if (s == GPRSS_CONNECT_OK) {
@@ -51,7 +198,7 @@ uint8_t DLHTTP::backend_start(char *host, uint16_t port) {
 			}
 		}
 		delay(10);
-	} 
+	}
 	return 0;
 }
 
@@ -79,9 +226,11 @@ void DLHTTP::parse_url(char *url, char **host, char **query_string) {
 
 uint8_t DLHTTP::GET(char *url) {
 	char *host, *query_string;
+
 	parse_url(url, &host, &query_string);
 	if (!backend_start(host, 80))
 		return 0;
+	
 	get_from_flash_P(PSTR("GET /"), _http_buff);
 	_gsm->GPRS_send(_http_buff);
 	Serial.println(query_string);
