@@ -19,8 +19,12 @@
 #include <DLSD.h>
 #include <DLGSM.h>
 #include <DLHTTP.h>
+#include <DLFileUpload.h>
+
+//#define SHOW_MEASURE_LOGS 1
 
 #define MAX_FILESIZE 50000
+#define SERIAL_MAX_FILESIZE 100000000
 
 #define _cons_serial Serial
 #define _cons_baud 57600
@@ -47,25 +51,28 @@ DLGSM gsm;
 char gsm_buff[GSM_BUFF_SIZE];
 enum gsm_states { gsm_init_poff, gsm_idle, gsm_send_sms_status, gsm_send_http_status, gsm_upload_data, gsm_firmware_dl };
 static enum gsm_states gsm_curr_state = gsm_init_poff;
+static enum gsm_states requested_state = gsm_idle;
 
 DLHTTP http;
+DLFileUpload fup;
 
 DLSD sd(0,4);
 
 // IO setup
 DLMeasure measure;
 
-typedef struct Thread_t {
+typedef struct {
 	struct pt pt;
 	int timing;
-};
+} Thread_t;
 
-#define NUM_THREADS 3
+#define NUM_THREADS 4
 #define THREAD_SYS 0
 #define THREAD_MEAS 1
 #define THREAD_COMM 2
+#define THREAD_SER 3
 Thread_t threads[NUM_THREADS];
-static struct pt pt_sys, pt_measure, pt_comm, comm_child_pt; 
+static struct pt pt_sys, pt_measure, pt_comm, pt_serial, comm_child_pt; 
 
 /* Static variables for threads */
 /* System thread */
@@ -73,8 +80,13 @@ static char led_touts[5] = {10, 50, 100, 150, 200};
 
 /* Communication thread */
 static int u = 0;
-
-
+#define EXT_SER_RX 14 
+#define EXT_SER_TX 13
+#define EXT_SER_BAUD 19200
+#define EXT_BUFF_SIZE 512 // Matching with the SD card write buffer
+SoftwareSerial _extserial(EXT_SER_RX, EXT_SER_TX);
+char ext_buff[EXT_BUFF_SIZE];
+int ext_buff_pos = 0;
 
 void setup() {
 	int ret = 0;
@@ -85,7 +97,6 @@ void setup() {
 	digitalWrite(0, LOW);
 	_cons_serial.begin(_cons_baud);
 	_cons_serial.println("Setup");
-
 
 	for(ret=0;ret<NUM_THREADS;ret++) {
 		threads[ret].timing=0;
@@ -140,11 +151,16 @@ void setup() {
 	if (config->http_upload_time == 0)
 		config->http_upload_time = 60000;
 
+	// File upload init, depends on: config, sd, http
+	fup.init(config, &sd, &http, tmp_buff, TMP_BUFF_SIZE); 
 
+	// External serial launch
+	_extserial.begin(EXT_SER_BAUD);
 
 	PT_INIT(&pt_sys);
 	PT_INIT(&pt_measure);
 	PT_INIT(&pt_comm);
+	PT_INIT(&pt_serial);
 }
 
 /* System thread
@@ -152,6 +168,7 @@ void setup() {
 	- Pet the internal and external watchdogs 
 	- Load config file
 	- Status LED
+	- Track real uptime (millis overflow)
 */
 static int protothread_sys(struct pt *pt, int interval) {
 	static unsigned long timestamp = 0;
@@ -162,9 +179,13 @@ static int protothread_sys(struct pt *pt, int interval) {
 		timestamp = millis();
 		if (_cons_serial.available()) {
 			t = _cons_serial.read();
+			if (t == 'u') {
+				_cons_serial.println("HTTP upload requested");
+				requested_state = gsm_upload_data;
+			}
 			if (t == 's') {
-				_cons_serial.println("Sending an SMS");
-				gsm_curr_state = gsm_send_http_status;
+				_cons_serial.println("HTTP status requested");
+				requested_state = gsm_send_http_status;
 
 			}
 		} else {
@@ -222,7 +243,9 @@ static int protothread_measure(struct pt *pt, int interval) {
 			sd.write(DATALOG, log_buff);
 			sd.close(DATALOG);
 		}
+#ifdef SHOW_MEASURE_LOGS
 		LOG("Measured");
+#endif
 	}
 	PT_END(pt);
 }
@@ -236,7 +259,7 @@ static int protothread_measure(struct pt *pt, int interval) {
 */
 static int protothread_comm(struct pt *pt, int interval) {
 	static unsigned long timestamp = 0;
-	static uint32_t last_upload = 0, last_status = 0;
+	static uint32_t last_upload = 0, last_status = 0, filesize = 0;
 	static struct pt comm_inside_pt;
 	char e=0, v;
 	char ret=0;
@@ -274,19 +297,25 @@ static int protothread_comm(struct pt *pt, int interval) {
 		} else if (gsm_curr_state == gsm_idle) {
 			LOG("GSM idle");
 	
-			PT_WAIT_UNTIL(pt, gsm.available() || (millis() - last_status) > 60000 || (millis() - last_upload) > 120000);
+			PT_WAIT_UNTIL(pt, gsm.available() || (millis() - last_status) > 60000 || (millis() - last_upload) > (60000*10) || requested_state != gsm_idle);
 
 			if (gsm.available()) {
 				PT_WAIT_THREAD(pt, gsm.PT_GSM_event_handler(&comm_inside_pt, &ret));
 				if (ret == GSM_EVENT_STATUS_REQ)
-					gsm_curr_state = gsm_send_http_status;
+					gsm_curr_state = gsm_upload_data;
 			} else if ((millis() - last_status) > 60000) {
 				gsm_curr_state = gsm_send_http_status;
 				last_status = millis();
 			} else if ((millis() - last_upload) > 120000) {
 				LOG("GSM upload...");
 				last_upload = millis();
+				gsm_curr_state = gsm_upload_data;
+			} else if (requested_state != gsm_idle) {
+				LOG("Switching to requested state");
+				gsm_curr_state = requested_state;
+				requested_state = gsm_idle;
 			}
+
 	
 			//LOG("Done event handler");
 			//PT_WAIT_THREAD(pt, gsm.PT_GPRS_check_conn_state(&comm_inside_pt, &ret));
@@ -314,43 +343,19 @@ static int protothread_comm(struct pt *pt, int interval) {
                         strcat_P(tmp_buff, PSTR("&cl="));
                         fmtUnsigned(u, smallbuff, 12);
                         strcat(tmp_buff, smallbuff);
-                        strcat_P(tmp_buff, PSTR("&cls=0"));
-                        //v = http.GET(log_buff);
-                        PT_WAIT_THREAD(pt, http.PT_GET(&comm_child_pt, &ret, tmp_buff));
+			filesize = sd.open(DATALOG, O_RDWR | O_CREAT | O_APPEND);
+			sd.close(DATALOG);
+                        strcat_P(tmp_buff, PSTR("&cls="));
+			fmtUnsigned(filesize, smallbuff, 12);
+			strcat(tmp_buff, smallbuff);
+                        
+			PT_WAIT_THREAD(pt, http.PT_GET(&comm_child_pt, &ret, tmp_buff));
                         get_from_flash_P(PSTR("R: "), tmp_buff);
                         Serial.print(tmp_buff);
                         Serial.println(v, DEC);
 			if (ret) {
 				gsm_curr_state = gsm_idle;
 			}
-/*			PT_WAIT_THREAD(pt, gsm.PT_GPRS_check_conn_state(&comm_inside_pt, &ret));
-  			if (ret >= GPRSS_IP_STATUS && ret < GPRSS_PDP_DEACT) {
-				PT_WAIT_THREAD(pt, gsm.PT_GPRS_connect(&comm_inside_pt, &ret, "46.4.106.217", 80, true));
-				if (ret == 1) {
-        				Serial.println("Connect OK");
-					PT_WAIT_THREAD(pt, gsm.PT_GPRS_send_start(&comm_inside_pt, &ret));
-        				gsm.GPRS_send("GET /test.php HTTP/1.0\r\n\r\n");
-					PT_WAIT_THREAD(pt, gsm.PT_GPRS_send_end(&comm_inside_pt, &ret));
-        				PT_WAIT_THREAD(pt, gsm.PT_recv(&comm_inside_pt, &ret, "CLOSED", 3000));	
-        				PT_WAIT_THREAD(pt, gsm.PT_GPRS_close(&comm_inside_pt, &ret));
-        				if (ret)
-          					Serial.println("Close OK");
-        				else
-          					Serial.println("Close failed");
-    					gsm_curr_state = gsm_idle;
-				} else {
-        				Serial.print("Connect failed 2: ");
-					Serial.println(ret, DEC);
-				}
-			} else if (ret < GPRSS_IP_STATUS) {
-				PT_WAIT_THREAD(pt, gsm.PT_GPRS_init(&comm_inside_pt, &ret));
-				Serial.print("GPRS init done: ");
-				Serial.println(ret, DEC);
-  			} else {
-    				Serial.print("Bad GPRS status: ");
-				Serial.println(ret, DEC);
-			}
-*/
 			//gsm_curr_state = gsm_idle;
 		} else if (gsm_curr_state == gsm_send_sms_status) { 
 			LOG("Sent virtual status");
@@ -360,6 +365,10 @@ static int protothread_comm(struct pt *pt, int interval) {
 			PT_WAIT_THREAD(pt, gsm.PT_SMS_send(&comm_inside_pt, &ret, "+4527148803", tmp_buff, strlen(tmp_buff)));
 			gsm_curr_state = gsm_idle;
 			PT_YIELD(pt);
+		} else if (gsm_curr_state == gsm_upload_data) {
+			LOG("Doing HTTP upload");
+			PT_WAIT_THREAD(pt, fup.PT_upload(&comm_inside_pt, &ret, DATALOG_READONLY, 0));
+			gsm_curr_state = gsm_idle;
 		} else {	
 			PT_WAIT_UNTIL(pt, millis() - timestamp >= (10*interval));
 			timestamp = millis();
@@ -368,6 +377,40 @@ static int protothread_comm(struct pt *pt, int interval) {
 	}
 	PT_END(pt);	
 }
+
+static int protothread_serial(struct pt *pt, int interval) {
+	static struct pt child_pt;
+	static long timestamp;
+	long filesize;
+	char c;
+	PT_BEGIN(pt);
+	while (1) {
+		PT_WAIT_UNTIL(pt, (millis() - timestamp >= interval) || _extserial.available());
+                timestamp = millis();
+		while (_extserial.available() && ext_buff_pos < EXT_BUFF_SIZE) {
+			c = _extserial.read();
+			_cons_serial.print(c);
+			ext_buff[ext_buff_pos] = c;
+			ext_buff_pos++;
+		}
+		if (ext_buff_pos == (EXT_BUFF_SIZE-1)) { // Write to SD
+                        if (sd.is_available() < 0)
+                                sd.init();
+                        filesize = sd.open(SERIALLOG, O_RDWR | O_CREAT | O_APPEND);
+                        if (filesize > SERIAL_MAX_FILESIZE) {
+                                sd.close(SERIALLOG);
+                                sd.increment_file(SERIALLOG);
+                                //cfg.save_files_count(0);
+                                filesize = sd.open(SERIALLOG, O_RDWR | O_CREAT | O_APPEND);
+                        }
+                        sd.write(SERIALLOG, ext_buff);
+                        //sd.close(SERIALLOG);
+			LOG("Wrote external serial data");	
+		}
+	}
+	PT_END(pt);
+} 
+
 
 #define SET_IF_MAX(v,a) { \
 	if (a > v) v = a; \
@@ -383,5 +426,8 @@ void loop() {
 	ts = millis();
 	protothread_comm(&threads[THREAD_COMM].pt, 500);	
 	SET_IF_MAX(threads[THREAD_COMM].timing, millis()-ts);	
+	ts = millis();
+	protothread_serial(&threads[THREAD_SER].pt, 1000);
+	SET_IF_MAX(threads[THREAD_SER].timing, millis()-ts);
 }
 

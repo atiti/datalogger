@@ -2,12 +2,15 @@
 #include "DLSD.h"
 
 prog_char sd_filename_0[] PROGMEM = "CONFIG";
-//prog_char sd_filename_1[] PROGMEM = "SYS00000";
 prog_char sd_filename_1[] PROGMEM = "DAT00000";
-//prog_char sd_filename_3[] PROGMEM = "EVE00000";
+prog_char sd_filename_2[] PROGMEM = "SYS00000";
+prog_char sd_filename_3[] PROGMEM = "SER00000";
 
-PROGMEM const char *sd_filename_table[] = {sd_filename_0, sd_filename_1 };
-                                           //sd_filename_2, sd_filename_3};
+PROGMEM const char *sd_filename_table[] = {
+					   sd_filename_0, sd_filename_1,
+                                           sd_filename_2, sd_filename_3, 
+					   sd_filename_1 // Read only for previous log file
+					  };
 
 prog_char sd_filename_ext[] PROGMEM = ".DAT";
 

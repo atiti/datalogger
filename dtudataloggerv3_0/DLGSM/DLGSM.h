@@ -1,12 +1,16 @@
 #ifndef DLGSM_h
 #define DLGSM_h
 
+#define HARDWARE_SERIAL 1
+
 #include <Arduino.h>
 #include <DLCommon.h>
 #include <avr/wdt.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
+#ifndef HARDWARE_SERIAL
 #include <SoftwareSerial.h>
+#endif
 #include <string.h>
 
 #define WATCHDOG 1
@@ -37,7 +41,9 @@
 #define CONN_CONNECTED 0x1
 #define CONN_SENDING 0x2
 #define CONN_NETWORK 0x4
-#define CONN_PWR 0x8
+#define CONN_GPRS_NET 0x8
+#define CONN_PWR 0x10
+
 
 #define GSM_EVENT_STATUS_REQ 1
 #define GSM_EVENT_LIVE 2

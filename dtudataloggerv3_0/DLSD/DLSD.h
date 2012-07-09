@@ -10,10 +10,11 @@
 
 #define CONFIG 0
 #define DATALOG 1
-//#define SYSLOG 2
-//#define EVENTLOG 3
+#define SYSLOG 2
+#define SERIALLOG 3
+#define DATALOG_READONLY 4
 
-#define NUM_FILES 2
+#define NUM_FILES 5
 
 class DLSD
 {

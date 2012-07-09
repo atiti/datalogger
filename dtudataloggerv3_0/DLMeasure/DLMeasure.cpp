@@ -10,7 +10,7 @@ volatile double _mins[NUM_IO] = { 9999.0 };
 volatile double _maxs[NUM_IO] = { 0 };
 volatile uint8_t _AOD[NUM_IO] = { IO_OFF };
 
-
+/*
 ISR(DIGITAL_ISR_VECT) {
 	char portvals, i;
 	portvals = DIGITAL_PORT;
@@ -31,7 +31,7 @@ ISR(DIGITAL_ISR_VECT) {
 		}
 	}
 }
-
+*/
 DLMeasure::DLMeasure()
 {
 	_sum_cnt = 0;
@@ -48,7 +48,7 @@ void DLMeasure::init() {
 	}
 	// Enable PCINT for digital ports
 	DIGITAL_PCMSK = DIGITAL_PCMSK_VAL; // Only enable the ports in use
-	PCICR = DIGITAL_PCIE;
+	PCICR |= (1 << DIGITAL_PCIE);
 
 	enable();
 //	get_bandgap();
@@ -69,7 +69,7 @@ void DLMeasure::disable(){
 void DLMeasure::pwr_on() {
 	digitalWrite(EXT_PWR_PIN, HIGH);
 	delay(50);
-	get_bandgap();
+	//get_bandgap();
 }
 
 void DLMeasure::pwr_off() {
@@ -148,7 +148,7 @@ void DLMeasure::reset() {
 		_sum_cnt = 0;
 		_count_start = 0;
 	}
-	get_bandgap();
+	//get_bandgap();
 }
 
 void DLMeasure::set_int_fun(INT_callback fun) {

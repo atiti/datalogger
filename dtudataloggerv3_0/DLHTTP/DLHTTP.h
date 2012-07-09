@@ -38,7 +38,7 @@ class DLHTTP
 	private:
 		DLGSM *_gsm;
 		char *_http_buff;
-		short _sent;
+		uint32_t _sent;
 		uint8_t _DEBUG;
 		uint8_t *_backend_err;
 };

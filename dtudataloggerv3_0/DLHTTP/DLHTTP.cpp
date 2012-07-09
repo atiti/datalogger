@@ -42,9 +42,13 @@ int DLHTTP::PT_backend_start(struct pt *pt, char *ret, char *host, uint16_t port
 	if (*ret != 1) {
 		PT_RESTART(pt);
 	}
-
-
-	PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_start(&child_pt, ret));
+	*ret = 0;
+	
+	while (*ret != 1) {
+		PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_start(&child_pt, ret));
+		if (*ret == 2)
+			PT_EXIT(pt);
+	}
 
 	PT_END(pt);
 }
@@ -63,7 +67,8 @@ int DLHTTP::PT_GET(struct pt *pt, char *ret, char *url) {
 	PT_BEGIN(pt);
         parse_url(url, &host, &query_string);
 
-	PT_WAIT_UNTIL(pt, PT_backend_start(&child_pt, ret, host, 80));
+	PT_WAIT_THREAD(pt, PT_backend_start(&child_pt, ret, host, 80));
+	if (*ret != 1) PT_EXIT(pt);
 
         get_from_flash_P(PSTR("GET /"), _http_buff);
         _gsm->GPRS_send(_http_buff);
@@ -81,7 +86,7 @@ int DLHTTP::PT_GET(struct pt *pt, char *ret, char *url) {
         }
         _gsm->GPRS_send("\r\n"); // Trailing \r\n to finish the header
         
-	PT_WAIT_UNTIL(pt, _gsm->PT_GPRS_send_end(&child_pt, ret));
+	PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_end(&child_pt, ret));
 
         PT_WAIT_THREAD(pt, _gsm->PT_recv(&child_pt, ret, "CLOSED", 3000));
         
@@ -94,7 +99,7 @@ int DLHTTP::PT_POST_start(struct pt *pt, char *ret, char *url) {
 	static struct pt child_pt;
 	PT_BEGIN(pt);
 	
-	PT_WAIT_UNTIL(pt, PT_POST_start(&child_pt, ret, url, 0));
+	PT_WAIT_THREAD(pt, PT_POST_start(&child_pt, ret, url, 0));
 
 	PT_END(pt);
 }
@@ -103,11 +108,15 @@ int DLHTTP::PT_POST_start(struct pt *pt, char *ret, char *url, int cl) {
 	static struct pt child_pt;
         static char *host, *query_string;
 	PT_BEGIN(pt);
-
+	_sent = 0;
         parse_url(url, &host, &query_string);
 
-	PT_WAIT_UNTIL(pt, PT_backend_start(&child_pt, ret, host, 80));
-        
+	PT_WAIT_THREAD(pt, PT_backend_start(&child_pt, ret, host, 80));
+        if (*ret != 1) {
+		*ret = 0;
+		PT_EXIT(pt);
+	}
+	
 	get_from_flash_P(PSTR("POST /"), _http_buff);
         _gsm->GPRS_send(_http_buff);
         _gsm->GPRS_send(query_string);
@@ -128,7 +137,9 @@ int DLHTTP::PT_POST_start(struct pt *pt, char *ret, char *url, int cl) {
         }
         _gsm->GPRS_send("\r\n");
         
-        PT_WAIT_UNTIL(pt, _gsm->PT_GPRS_send_end(&child_pt, ret));
+        PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_end(&child_pt, ret));
+	if (*ret != 1)
+		PT_RESTART(pt);
 
 	*ret = 1;
 	PT_END(pt);
@@ -177,6 +188,8 @@ int DLHTTP::PT_POST_end(struct pt *pt, char *ret) {
         PT_WAIT_THREAD(pt, _gsm->PT_recv(&child_pt, ret, "CLOSED", 3000));
 
 	PT_WAIT_THREAD(pt, PT_backend_end(&child_pt, ret));
+
+	PT_WAIT_THREAD(pt, _gsm->PT_GPRS_check_conn_state(&child_pt, ret));
 	
 	PT_END(pt);
 }
