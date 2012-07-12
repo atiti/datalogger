@@ -34,12 +34,16 @@ void DLHTTP::init(char *http_buff, DLGSM *ptr) {
 #ifdef USE_PT
 int DLHTTP::PT_backend_start(struct pt *pt, char *ret, char *host, uint16_t port) {
 	static struct pt child_pt;
+	static uint32_t ts;
 
 	PT_BEGIN(pt);
 
 
 	PT_WAIT_THREAD(pt, _gsm->PT_GPRS_connect(&child_pt, ret, host, port, true));
 	if (*ret != 1) {
+		PT_WAIT_UNTIL(pt, (millis() - ts) > 5000);
+		ts = millis();
+		PT_WAIT_THREAD(pt, _gsm->PT_GPRS_init(&child_pt, ret));
 		PT_RESTART(pt);
 	}
 	*ret = 0;
@@ -147,13 +151,26 @@ int DLHTTP::PT_POST_start(struct pt *pt, char *ret, char *url, int cl) {
 
 int DLHTTP::PT_POST(struct pt *pt, char *ret, char *data, int len) {
 	static struct pt child_pt;
+	uint32_t sendsize;
 	PT_BEGIN(pt);
+	if (!_gsm->CONN_get_flag(CONN_CONNECTED)) {
+		*ret = 2;
+		PT_EXIT(pt);
+	}
+
         if (data) {
+			
                 if (_sent == 0) {
                 	PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_start(&child_pt, ret)); 
 		}
                 _sent += len;
-                if (_sent > _gsm->GPRS_send_get_size()) {
+		sendsize = _gsm->GPRS_send_get_size();
+		if (sendsize == 0) {
+			*ret = 3;
+			PT_EXIT(pt);
+		}
+
+                if (_sent > sendsize) {
                         Serial.println("Data exceed.");
 			PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_end(&child_pt, ret));
                         _sent = len;
@@ -163,16 +180,6 @@ int DLHTTP::PT_POST(struct pt *pt, char *ret, char *data, int len) {
                 Serial.println(_sent, DEC);
                 _gsm->GPRS_send_raw(data, len);
 		*ret = 1;
-/*              if (_sent == 0)
-                        _gsm->GPRS_send_start();        
-                _gsm->GPRS_send_raw(data, len);
-                _sent += len;
-                if (_sent >= 1000) {
-                        _gsm->GPRS_send_end();
-                        _sent = 0;
-                }
-*/
-	
         } else {
 		*ret = 0;
 	}

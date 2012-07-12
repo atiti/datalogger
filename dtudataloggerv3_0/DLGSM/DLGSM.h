@@ -15,7 +15,8 @@
 
 #define WATCHDOG 1
 
-#define GSM_PWR 9
+#define GSM_PWR 22
+
 //#define GSM_BAUD 9600
 #define GSM_BAUD 57600
 #define GSM_RX 7
@@ -78,6 +79,8 @@ class DLGSM
 		int PT_GPRS_send_end(struct pt *pt, char *ret);
 		int PT_GPRS_close(struct pt *pt, char *ret);
 		uint8_t wake_modem(struct pt *pt);
+		int PT_pwr_on(struct pt *pt);
+		int PT_pwr_off(struct pt *pt, uint8_t force);
 #else
 		uint8_t wake_modem();
 #endif

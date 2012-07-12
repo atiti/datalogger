@@ -29,6 +29,6 @@ int memory_test();
 void fmtDouble(double val, byte precision, char *buf, unsigned bufLen = 0xffff);
 unsigned fmtUnsigned(unsigned long val, char *buf, unsigned bufLen = 0xffff, byte width = 0);
 unsigned long crc_string(char *s);
-
+int get_bandgap();
 #endif
 

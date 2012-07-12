@@ -84,7 +84,6 @@ class DLMeasure
 		volatile uint16_t _dvals;
 		uint32_t _count_start;
 		uint8_t _DEBUG;
-		int _bandgap;
 		INT_callback _int_ptr;
 };
 

@@ -13,8 +13,8 @@ OPT=s  # Optimization
 #AVRDUDE_BIN=$(ARDUINO_DIR)/hardware/tools/avrdude 
 AVRDUDE_BIN=/usr/bin/avrdude
 AVRDUDE_PROGRAMMER=arduino #stk500v1
-#AVRDUDE_PORT=/dev/ttyUSB0
-AVRDUDE_PORT=/dev/ttyACM3
+AVRDUDE_PORT=/dev/ttyUSB0
+#AVRDUDE_PORT=/dev/ttyACM3
 #AVRDUDE_CONF=$(ARDUINO_DIR)/hardware/tools/avrdude.conf
 AVRDUDE_CONF=/etc/avrdude.conf
 
@@ -37,7 +37,7 @@ CXXTUNING=-fno-exceptions -ffunction-sections -fdata-sections
 
 CFLAGS=$(CDEBUG) $(CDEFS) $(CINCS) -O$(OPT) $(CWARN) $(CSTANDARD) $(CEXTRA)
 CXXFLAGS=$(CXXTUNING) $(CDEFS) $(CINCS) -O$(OPT)
-LDFLAGS=
+LDFLAGS= 
 
 ARDUINO_SRC= \
 $(ARDUINO_HEADERS)/wiring_pulse.c \

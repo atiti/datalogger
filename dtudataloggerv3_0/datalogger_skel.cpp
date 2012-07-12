@@ -20,6 +20,11 @@
 #include <DLGSM.h>
 #include <DLHTTP.h>
 #include <DLFileUpload.h>
+#include <DHT22.h>
+
+#define DHT22_PIN 23 
+
+DHT22 myDHT22(DHT22_PIN);
 
 //#define SHOW_MEASURE_LOGS 1
 
@@ -87,6 +92,11 @@ static int u = 0;
 SoftwareSerial _extserial(EXT_SER_RX, EXT_SER_TX);
 char ext_buff[EXT_BUFF_SIZE];
 int ext_buff_pos = 0;
+
+float curr_temperature = 0.0f;
+float curr_humidity = 0.0f;
+int curr_voltage = 0;
+uint32_t main_iter_cnt = 0;
 
 void setup() {
 	int ret = 0;
@@ -173,6 +183,7 @@ void setup() {
 static int protothread_sys(struct pt *pt, int interval) {
 	static unsigned long timestamp = 0;
 	char t = 0;
+	DHT22_ERROR_t errorCode;
 	PT_BEGIN(pt);
 	while (1) {
 		PT_WAIT_UNTIL(pt, millis() - timestamp >= 10*interval || _cons_serial.available());
@@ -193,19 +204,36 @@ static int protothread_sys(struct pt *pt, int interval) {
 			PT_WAIT_UNTIL(pt, millis() - timestamp >= 200);	
 			digitalWrite(0, LOW);
 	
-			t = gsm.CONN_get_flag(CONN_NETWORK);
+			errorCode = myDHT22.readData();
+			if (errorCode == DHT_ERROR_NONE) {
+				curr_temperature = myDHT22.getTemperatureC();
+				curr_humidity = myDHT22.getHumidity();
+			} 
+
+			curr_voltage = get_bandgap();	
+	
+			t = gsm.CONN_get_flag(0xff);
 			_cons_serial.print(millis());
-			_cons_serial.print(": Sys ");
+			_cons_serial.print(": ");
+			_cons_serial.print(main_iter_cnt, DEC);
+			_cons_serial.print("Hz Sys ");
 			_cons_serial.print(threads[THREAD_SYS].timing, DEC);
 			_cons_serial.print("ms Meas ");
 			_cons_serial.print(threads[THREAD_MEAS].timing, DEC);
 			_cons_serial.print("ms Comm ");
 			_cons_serial.print(threads[THREAD_COMM].timing, DEC);
 			_cons_serial.print("ms Net: "); 
-			_cons_serial.println(t, DEC);
+			_cons_serial.print(t, DEC);
+			_cons_serial.print(" Temp: ");
+			_cons_serial.print(curr_temperature);
+			_cons_serial.print("C Humi: ");
+			_cons_serial.print(curr_humidity);
+			_cons_serial.print(" V: ");
+			_cons_serial.println(curr_voltage, DEC);
 			threads[THREAD_SYS].timing = 0;
 			threads[THREAD_MEAS].timing = 0;
 			threads[THREAD_COMM].timing = 0;
+			main_iter_cnt = 0;
 		}
 	}
 	PT_END(pt);
@@ -270,29 +298,31 @@ static int protothread_comm(struct pt *pt, int interval) {
 		if (gsm_curr_state == gsm_init_poff) {
   		      	// Try to switch off the module 
 			while (u < 3) {
+				Serial.print("u: ");
+				Serial.println(u);
                 		PT_WAIT_THREAD(pt, gsm.PT_send_recv_confirm(&comm_inside_pt, &ret, "AT\r\n", "OK", 1000));
 				//gsm.GSM_send("AT\r\n");
 				//e = gsm.GSM_process("OK");
 				Serial.print("Ret: ");
 				Serial.println(ret, DEC);
 				if (ret > 0) {
-					gsm.pwr_off(1);
+					PT_WAIT_THREAD(pt, gsm.PT_pwr_off(&comm_inside_pt, 1));
 					LOG("GSM powered off.");
 					gsm_curr_state = gsm_idle;
 					u = 3;
-					PT_YIELD(pt);
 				} else {
 					PT_WAIT_UNTIL(pt, e > 0 || (millis() - timestamp > 1000));
 					timestamp = millis();
 					u++;
 				}
 			}
+			PT_WAIT_THREAD(pt, gsm.PT_pwr_on(&comm_inside_pt));
 			PT_WAIT_THREAD(pt, gsm.PT_GSM_init(&comm_inside_pt, &ret));
 			Serial.print("GSM ret: ");
 			Serial.println(ret, DEC);
 			PT_WAIT_THREAD(pt, gsm.PT_GPRS_init(&comm_inside_pt, &ret));
 			Serial.print("GPRS ret: ");
-			Serial.println(ret, DEC);
+			Serial.println(ret, DEC); 
 			gsm_curr_state = gsm_idle;
 		} else if (gsm_curr_state == gsm_idle) {
 			LOG("GSM idle");
@@ -305,11 +335,10 @@ static int protothread_comm(struct pt *pt, int interval) {
 					gsm_curr_state = gsm_upload_data;
 			} else if ((millis() - last_status) > 60000) {
 				gsm_curr_state = gsm_send_http_status;
-				last_status = millis();
 			} else if ((millis() - last_upload) > 120000) {
 				LOG("GSM upload...");
 				last_upload = millis();
-				gsm_curr_state = gsm_upload_data;
+				//gsm_curr_state = gsm_upload_data;
 			} else if (requested_state != gsm_idle) {
 				LOG("Switching to requested state");
 				gsm_curr_state = requested_state;
@@ -322,6 +351,7 @@ static int protothread_comm(struct pt *pt, int interval) {
 			//LOG("Done conn check");
 			//PT_YIELD(pt);
 		} else if (gsm_curr_state == gsm_send_http_status) {
+			last_status = millis();
                         strcpy_P(tmp_buff, PSTR("http://dl2.zsuatt.com/status.php"));
                         strcat_P(tmp_buff, PSTR("?id="));
                         fmtUnsigned(config->id, smallbuff, 10);
@@ -331,8 +361,13 @@ static int protothread_comm(struct pt *pt, int interval) {
                         strcat_P(tmp_buff, PSTR("&gi="));
                         strcat(tmp_buff, gsm.GSM_get_ci());
                         strcat_P(tmp_buff, PSTR("&t="));
-                        //fmtUnsigned(analog_values[15], smallbuff, 12);
+			dtostrf(curr_temperature, 4, 3, smallbuff);
+			//fmtDouble(curr_temperature, 3, smallbuff, 12);
+			//fmtUnsigned(analog_values[15], smallbuff, 12);
                         strcat(tmp_buff, smallbuff);
+			strcat_P(tmp_buff, PSTR("&hum="));
+			dtostrf(curr_humidity, 4,3,smallbuff);
+			strcat(tmp_buff, smallbuff);
                         strcat_P(tmp_buff, PSTR("&ts="));
                         fmtUnsigned(now(), smallbuff, 12);
                         strcat(tmp_buff, smallbuff);
@@ -356,6 +391,7 @@ static int protothread_comm(struct pt *pt, int interval) {
 			if (ret) {
 				gsm_curr_state = gsm_idle;
 			}
+                        //PT_WAIT_THREAD(pt, gsm.PT_pwr_off(&comm_inside_pt, 0));
 			//gsm_curr_state = gsm_idle;
 		} else if (gsm_curr_state == gsm_send_sms_status) { 
 			LOG("Sent virtual status");
@@ -363,11 +399,18 @@ static int protothread_comm(struct pt *pt, int interval) {
 
 			sprintf(tmp_buff, "Hello world");
 			PT_WAIT_THREAD(pt, gsm.PT_SMS_send(&comm_inside_pt, &ret, "+4527148803", tmp_buff, strlen(tmp_buff)));
+			//PT_WAIT_THREAD(pt, gsm.PT_pwr_off(&comm_inside_pt, 0));
 			gsm_curr_state = gsm_idle;
 			PT_YIELD(pt);
 		} else if (gsm_curr_state == gsm_upload_data) {
 			LOG("Doing HTTP upload");
 			PT_WAIT_THREAD(pt, fup.PT_upload(&comm_inside_pt, &ret, DATALOG_READONLY, 0));
+			if (ret == 1) {
+				LOG("Upload successful");
+			} else {
+				LOG("Upload failed");
+			}
+                        //PT_WAIT_THREAD(pt, gsm.PT_pwr_off(&comm_inside_pt, 0));
 			gsm_curr_state = gsm_idle;
 		} else {	
 			PT_WAIT_UNTIL(pt, millis() - timestamp >= (10*interval));
@@ -429,5 +472,6 @@ void loop() {
 	ts = millis();
 	protothread_serial(&threads[THREAD_SER].pt, 1000);
 	SET_IF_MAX(threads[THREAD_SER].timing, millis()-ts);
+	main_iter_cnt++;
 }
 
