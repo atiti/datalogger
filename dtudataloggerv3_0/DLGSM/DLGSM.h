@@ -72,6 +72,7 @@ class DLGSM
 		int PT_GPRS_init(struct pt *pt, char *ret);
 		int PT_GPRS_check_conn_state(struct pt *pt, char *ret);
 		int PT_GSM_event_handler(struct pt *pt, char *ret);
+		int PT_check_flag(struct pt *pt, char flag);
 		int PT_SMS_send(struct pt *pt, char *ret, char *nr, char *text, int len);
 		int PT_SMS_send_end(struct pt *pt);
 		int PT_GPRS_connect(struct pt *pt, char *ret, char *server, short port, bool proto);
@@ -81,6 +82,8 @@ class DLGSM
 		uint8_t wake_modem(struct pt *pt);
 		int PT_pwr_on(struct pt *pt);
 		int PT_pwr_off(struct pt *pt, uint8_t force);
+		int PT_restart(struct pt *pt, char *ret);
+		int PT_handle_errors(struct pt *pt);
 #else
 		uint8_t wake_modem();
 #endif
@@ -138,6 +141,9 @@ class DLGSM
 		uint16_t _sendsize;
 		Connection _c;
 		uint8_t _DEBUG;
+		uint32_t _tout_cnt;
+		uint32_t _error_cnt;
+
 };
 
 #endif

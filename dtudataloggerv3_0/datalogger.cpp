@@ -54,7 +54,7 @@ DLGSM gsm;
 // HTTP
 DLHTTP http;
 
-#define LOG_BUFF_SIZE 2048
+#define LOG_BUFF_SIZE 512
 time_t lt = now();
 uint8_t state = LOAD_CONFIG; // lets start at IDLE state
 uint8_t lstate = IDLE;

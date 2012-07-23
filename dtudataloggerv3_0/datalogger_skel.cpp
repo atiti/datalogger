@@ -1,4 +1,5 @@
 #define USE_PT
+#define ZSUATT_DATALOGGER 1
 
 #include <Arduino.h>
 #ifdef USE_PT
@@ -7,12 +8,12 @@
 #include <HardwareSerial.h>
 #include <avr/interrupt.h>
 #include <avr/wdt.h>
+#include <avr/sleep.h>
 #include <Wire.h>
 #include <EEPROM.h>
 #include <Time.h>
 #include <PCF8583.h>
 #include <SoftwareSerial.h>
-#include <Fat16.h>
 #include <DLCommon.h>
 #include <DLConfig.h>
 #include <DLMeasure.h>
@@ -22,32 +23,56 @@
 #include <DLFileUpload.h>
 #include <DHT22.h>
 
-#define DHT22_PIN 23 
+#define WATCHDOG_PIN 2
+#define DHT22_PIN 14 
 
 DHT22 myDHT22(DHT22_PIN);
 
 //#define SHOW_MEASURE_LOGS 1
 
+// Pin location for the status led
+#define STATUS_LED_PIN 0
+
+// Show the current voltage if the difference between the average
+// and the current is larger than the threshold, otherwise show average
+// Average gives a better picture on the long run
+#define VOLTAGE_THRESHOLD 5
+
+// Maximum File size for the data logs
 #define MAX_FILESIZE 50000
+// Maximum file size for the serial logs
 #define SERIAL_MAX_FILESIZE 100000000
 
+// Define a serial port as console (can be remapped to different hardware serial
+// Or software serial
 #define _cons_serial Serial
 #define _cons_baud 57600
 
+// External serial port configuration
+#define EXT_SER_RX 14 
+#define EXT_SER_TX 13
+#define EXT_SER_BAUD 19200
+
+// Logging macro, can be disabled on production
 #define LOG(v) {  \
 	_cons_serial.print(millis()); \
 	_cons_serial.print(": "); \
 	_cons_serial.println(v); \
 	}
 
+/*   ============ The variables below are for editing at your own risk! =========== */
+
 DLConfig cfg;
 Config *config = NULL;
+
+#define SYS_BUFF_SIZE 200
+char sys_buff[SYS_BUFF_SIZE];
 
 #define TMP_BUFF_SIZE 200
 char tmp_buff[TMP_BUFF_SIZE]; 
 
 
-#define LOG_BUFF_SIZE 2048
+#define LOG_BUFF_SIZE 512
 char log_buff[LOG_BUFF_SIZE];
 char smallbuff[20];
 
@@ -71,13 +96,14 @@ typedef struct {
 	int timing;
 } Thread_t;
 
-#define NUM_THREADS 4
+#define NUM_THREADS 5
 #define THREAD_SYS 0
 #define THREAD_MEAS 1
 #define THREAD_COMM 2
 #define THREAD_SER 3
+#define THREAD_WDT 4
 Thread_t threads[NUM_THREADS];
-static struct pt pt_sys, pt_measure, pt_comm, pt_serial, comm_child_pt; 
+static struct pt pt_sys, pt_measure, pt_comm, pt_serial, pt_wdt, comm_child_pt; 
 
 /* Static variables for threads */
 /* System thread */
@@ -85,9 +111,6 @@ static char led_touts[5] = {10, 50, 100, 150, 200};
 
 /* Communication thread */
 static int u = 0;
-#define EXT_SER_RX 14 
-#define EXT_SER_TX 13
-#define EXT_SER_BAUD 19200
 #define EXT_BUFF_SIZE 512 // Matching with the SD card write buffer
 SoftwareSerial _extserial(EXT_SER_RX, EXT_SER_TX);
 char ext_buff[EXT_BUFF_SIZE];
@@ -96,15 +119,26 @@ int ext_buff_pos = 0;
 float curr_temperature = 0.0f;
 float curr_humidity = 0.0f;
 int curr_voltage = 0;
+long total_voltage = 0;
 uint32_t main_iter_cnt = 0;
+
+void ext_wdt_reset() {
+	digitalWrite(WATCHDOG_PIN, LOW);
+	delay(10);
+	digitalWrite(WATCHDOG_PIN, HIGH);
+	Serial.println("eat dog");
+}
 
 void setup() {
 	int ret = 0;
-
+	bool led = false;
+	ext_wdt_reset();
 	wdt_disable();
-	delay(200);
-	pinMode(0, OUTPUT); // Status LED
-	digitalWrite(0, LOW);
+	delay(200); // Give us some time to start up
+	pinMode(STATUS_LED_PIN, OUTPUT); // Status LED
+	pinMode(WATCHDOG_PIN, OUTPUT);
+	digitalWrite(STATUS_LED_PIN, HIGH);
+	digitalWrite(WATCHDOG_PIN, HIGH);
 	_cons_serial.begin(_cons_baud);
 	_cons_serial.println("Setup");
 
@@ -112,18 +146,22 @@ void setup() {
 		threads[ret].timing=0;
 		PT_INIT(&threads[ret].pt);
 	}
-
+	ext_wdt_reset();
 	get_from_flash_P(PSTR("Mem: "), log_buff);
 	_cons_serial.print(log_buff);
 	_cons_serial.println(memory_test());
+        ext_wdt_reset();
 
+	_cons_serial.println("hi -1");
 	setSyncProvider(RTC.get); // Setup time provider to RTC
+	_cons_serial.println("hi 1");
 	if(timeStatus()!= timeSet) {
 		get_from_flash_P(PSTR("RTC fail!"), log_buff);
 	} else {
 		get_from_flash_P(PSTR("RTC ok!"), log_buff);
 	}
 	_cons_serial.println(log_buff);
+        ext_wdt_reset();
 
   	// Initialize GSM
   	gsm.init(gsm_buff, GSM_BUFF_SIZE, 5);
@@ -131,6 +169,7 @@ void setup() {
 
 	// Initialize HTTP
 	http.init(gsm_buff, &gsm);
+        ext_wdt_reset();
 
 	// Initialize SD
 	sd.debug(1);
@@ -142,8 +181,12 @@ void setup() {
                 	get_from_flash_P(PSTR("SD fail!"), log_buff);
        		_cons_serial.println(log_buff);
         	_cons_serial.println(ret,DEC);
-        	delay(1000);
+		led = !led;
+		digitalWrite(STATUS_LED_PIN, led);
+	        ext_wdt_reset();
+        	delay(200);
 	}
+        ext_wdt_reset();
 
 	measure.init(); // Initialize IO with buffers
 	//analog.set_int_fun(int_routine); // Set up the interrupt handler for events
@@ -157,20 +200,27 @@ void setup() {
 	cfg.load_files_count(1);
 	config = cfg.get_config();
 	if (config->http_status_time == 0)
-		config->http_status_time = 10000;
+		config->http_status_time = 1*60*1000; // 1 min
 	if (config->http_upload_time == 0)
-		config->http_upload_time = 60000;
+		config->http_upload_time = 10*60*1000; // 10 min
+
+        ext_wdt_reset();
 
 	// File upload init, depends on: config, sd, http
 	fup.init(config, &sd, &http, tmp_buff, TMP_BUFF_SIZE); 
 
 	// External serial launch
 	_extserial.begin(EXT_SER_BAUD);
+        ext_wdt_reset();
 
 	PT_INIT(&pt_sys);
 	PT_INIT(&pt_measure);
 	PT_INIT(&pt_comm);
 	PT_INIT(&pt_serial);
+
+	// Finally enable our internal watchdog
+	wdt_enable(WDTO_8S); 
+        ext_wdt_reset();
 }
 
 /* System thread
@@ -183,11 +233,14 @@ void setup() {
 static int protothread_sys(struct pt *pt, int interval) {
 	static unsigned long timestamp = 0;
 	char t = 0;
+	int32_t filesize = 0;
+	int tmp_voltage = 0;
 	DHT22_ERROR_t errorCode;
 	PT_BEGIN(pt);
 	while (1) {
 		PT_WAIT_UNTIL(pt, millis() - timestamp >= 10*interval || _cons_serial.available());
 		timestamp = millis();
+		wdt_reset();
 		if (_cons_serial.available()) {
 			t = _cons_serial.read();
 			if (t == 'u') {
@@ -200,36 +253,70 @@ static int protothread_sys(struct pt *pt, int interval) {
 
 			}
 		} else {
-			digitalWrite(0, HIGH);
+			digitalWrite(STATUS_LED_PIN, LOW);
 			PT_WAIT_UNTIL(pt, millis() - timestamp >= 200);	
-			digitalWrite(0, LOW);
+			digitalWrite(STATUS_LED_PIN, HIGH);
 	
 			errorCode = myDHT22.readData();
 			if (errorCode == DHT_ERROR_NONE) {
 				curr_temperature = myDHT22.getTemperatureC();
 				curr_humidity = myDHT22.getHumidity();
+			} else if (errorCode != DHT_ERROR_TOOQUICK) {
+				Serial.print("DHT22 Error: ");
+				Serial.println(errorCode, DEC);
 			} 
-
-			curr_voltage = get_bandgap();	
+			
+			// Get the supply voltage by using the internal bandgap, do a rolling average of it
+			curr_voltage = get_bandgap();
+			tmp_voltage = curr_voltage;
+			total_voltage -= total_voltage / 4;	
+			total_voltage += curr_voltage;
+			curr_voltage = total_voltage / 4;
 	
 			t = gsm.CONN_get_flag(0xff);
-			_cons_serial.print(millis());
-			_cons_serial.print(": ");
-			_cons_serial.print(main_iter_cnt, DEC);
-			_cons_serial.print("Hz Sys ");
-			_cons_serial.print(threads[THREAD_SYS].timing, DEC);
-			_cons_serial.print("ms Meas ");
-			_cons_serial.print(threads[THREAD_MEAS].timing, DEC);
-			_cons_serial.print("ms Comm ");
-			_cons_serial.print(threads[THREAD_COMM].timing, DEC);
-			_cons_serial.print("ms Net: "); 
-			_cons_serial.print(t, DEC);
-			_cons_serial.print(" Temp: ");
-			_cons_serial.print(curr_temperature);
-			_cons_serial.print("C Humi: ");
-			_cons_serial.print(curr_humidity);
-			_cons_serial.print(" V: ");
-			_cons_serial.println(curr_voltage, DEC);
+			
+			fmtUnsigned(millis(), smallbuff, 11);
+			strcpy(sys_buff, smallbuff);
+			strcat(sys_buff, ": ");
+			fmtUnsigned(main_iter_cnt, smallbuff, 11);
+			strcat(sys_buff, smallbuff);
+			strcat(sys_buff, "Hz Sys ");
+			fmtUnsigned(threads[THREAD_SYS].timing, smallbuff, 11);
+			strcat(sys_buff, smallbuff);
+			strcat(sys_buff, "ms Meas ");
+			fmtUnsigned(threads[THREAD_MEAS].timing, smallbuff, 11);
+			strcat(sys_buff, smallbuff);
+			strcat(sys_buff, "ms Comm ");
+			fmtUnsigned(threads[THREAD_COMM].timing, smallbuff, 11);
+			strcat(sys_buff, smallbuff);
+			strcat(sys_buff, "ms Net: ");
+			fmtUnsigned(t, smallbuff, 11);
+			strcat(sys_buff, smallbuff);
+			strcat(sys_buff, " T: ");
+			dtostrf(curr_temperature, 4, 3, smallbuff);
+			strcat(sys_buff, smallbuff);
+			strcat(sys_buff, " H: ");
+			dtostrf(curr_humidity, 4, 3, smallbuff);
+			strcat(sys_buff, smallbuff);
+			strcat(sys_buff, " V: ");
+			fmtUnsigned(((tmp_voltage-VOLTAGE_THRESHOLD) > curr_voltage ? tmp_voltage : curr_voltage), smallbuff, 10);
+			strcat(sys_buff, smallbuff);
+			strcat(sys_buff, "\r\n");
+	
+                        if (sd.is_available() < 0)
+                                sd.init();
+                        filesize = sd.open(SYSLOG, O_RDWR | O_CREAT | O_APPEND);
+                        if (filesize != -1) {
+				if (filesize > MAX_FILESIZE) {
+                               		sd.close(SYSLOG);
+                                	sd.increment_file(SYSLOG);
+                                	cfg.save_files_count(0);
+                                	filesize = sd.open(SYSLOG, O_RDWR | O_CREAT | O_APPEND);
+                        	}
+                        	sd.write(SYSLOG, sys_buff);
+                        	sd.close(SYSLOG);
+			}
+			Serial.print(sys_buff);
 			threads[THREAD_SYS].timing = 0;
 			threads[THREAD_MEAS].timing = 0;
 			threads[THREAD_COMM].timing = 0;
@@ -245,7 +332,7 @@ static int protothread_sys(struct pt *pt, int interval) {
 */
 static int protothread_measure(struct pt *pt, int interval) {
 	static unsigned long timestamp = 0;
-	uint32_t i = 0, filesize = 0;
+	int32_t i = 0, filesize = 0;
 	short val = 0;
 
 	PT_BEGIN(pt);
@@ -261,16 +348,19 @@ static int protothread_measure(struct pt *pt, int interval) {
 			if (sd.is_available() < 0)
 				sd.init();
 			filesize = sd.open(DATALOG, O_RDWR | O_CREAT | O_APPEND);
-			if (filesize > MAX_FILESIZE) {
+			if (filesize != -1) {
+				if (filesize > MAX_FILESIZE) {
+					sd.close(DATALOG);
+					sd.increment_file(DATALOG);
+					cfg.save_files_count(0);
+					filesize = sd.open(DATALOG, O_RDWR | O_CREAT | O_APPEND);
+				}
+				sd.write(DATALOG, log_buff);
 				sd.close(DATALOG);
-				sd.increment_file(DATALOG);
-				cfg.save_files_count(0);
-				filesize = sd.open(DATALOG, O_RDWR | O_CREAT | O_APPEND);
 			}
 			Serial.print(log_buff);
-			sd.write(DATALOG, log_buff);
-			sd.close(DATALOG);
 		}
+		
 #ifdef SHOW_MEASURE_LOGS
 		LOG("Measured");
 #endif
@@ -287,7 +377,7 @@ static int protothread_measure(struct pt *pt, int interval) {
 */
 static int protothread_comm(struct pt *pt, int interval) {
 	static unsigned long timestamp = 0;
-	static uint32_t last_upload = 0, last_status = 0, filesize = 0;
+	static int32_t last_upload = 0, last_status = 0, filesize = 0;
 	static struct pt comm_inside_pt;
 	char e=0, v;
 	char ret=0;
@@ -296,30 +386,19 @@ static int protothread_comm(struct pt *pt, int interval) {
 	u = 0;
 	while (1) {
 		if (gsm_curr_state == gsm_init_poff) {
-  		      	// Try to switch off the module 
-			while (u < 3) {
-				Serial.print("u: ");
-				Serial.println(u);
-                		PT_WAIT_THREAD(pt, gsm.PT_send_recv_confirm(&comm_inside_pt, &ret, "AT\r\n", "OK", 1000));
-				//gsm.GSM_send("AT\r\n");
-				//e = gsm.GSM_process("OK");
-				Serial.print("Ret: ");
-				Serial.println(ret, DEC);
-				if (ret > 0) {
-					PT_WAIT_THREAD(pt, gsm.PT_pwr_off(&comm_inside_pt, 1));
-					LOG("GSM powered off.");
-					gsm_curr_state = gsm_idle;
-					u = 3;
-				} else {
-					PT_WAIT_UNTIL(pt, e > 0 || (millis() - timestamp > 1000));
-					timestamp = millis();
-					u++;
-				}
-			}
-			PT_WAIT_THREAD(pt, gsm.PT_pwr_on(&comm_inside_pt));
+			timestamp = millis();
+//			PT_WAIT_THREAD(pt, gsm.PT_pwr_on(&comm_inside_pt));
+			PT_WAIT_THREAD(pt, gsm.PT_restart(&comm_inside_pt, &ret));
+			PT_WAIT_UNTIL(pt, (millis() - timestamp) > 5000);
+			timestamp = millis();
+			//PT_WAIT_WHILE(pt, gsm.CONN_get_flag(CONN_NETWORK) == 0);
+			PT_WAIT_THREAD(pt, gsm.PT_check_flag(&comm_inside_pt, CONN_NETWORK));
 			PT_WAIT_THREAD(pt, gsm.PT_GSM_init(&comm_inside_pt, &ret));
 			Serial.print("GSM ret: ");
 			Serial.println(ret, DEC);
+			PT_WAIT_UNTIL(pt, (millis() - timestamp) > 3000);
+			//PT_WAIT_WHILE(pt, gsm.CONN_get_flag(CONN_GPRS_NET) == 0);
+			PT_WAIT_THREAD(pt, gsm.PT_check_flag(&comm_inside_pt, CONN_GPRS_NET));
 			PT_WAIT_THREAD(pt, gsm.PT_GPRS_init(&comm_inside_pt, &ret));
 			Serial.print("GPRS ret: ");
 			Serial.println(ret, DEC); 
@@ -327,29 +406,24 @@ static int protothread_comm(struct pt *pt, int interval) {
 		} else if (gsm_curr_state == gsm_idle) {
 			LOG("GSM idle");
 	
-			PT_WAIT_UNTIL(pt, gsm.available() || (millis() - last_status) > 60000 || (millis() - last_upload) > (60000*10) || requested_state != gsm_idle);
+			PT_WAIT_UNTIL(pt, gsm.available() || (millis() - last_status) > config->http_status_time || (millis() - last_upload) > config->http_upload_time || requested_state != gsm_idle);
 
 			if (gsm.available()) {
 				PT_WAIT_THREAD(pt, gsm.PT_GSM_event_handler(&comm_inside_pt, &ret));
 				if (ret == GSM_EVENT_STATUS_REQ)
 					gsm_curr_state = gsm_upload_data;
-			} else if ((millis() - last_status) > 60000) {
+			} else if ((millis() - last_status) > config->http_status_time) {
 				gsm_curr_state = gsm_send_http_status;
-			} else if ((millis() - last_upload) > 120000) {
+			} else if ((millis() - last_upload) > config->http_upload_time) {
 				LOG("GSM upload...");
 				last_upload = millis();
-				//gsm_curr_state = gsm_upload_data;
+				gsm_curr_state = gsm_upload_data;
 			} else if (requested_state != gsm_idle) {
 				LOG("Switching to requested state");
 				gsm_curr_state = requested_state;
 				requested_state = gsm_idle;
 			}
 
-	
-			//LOG("Done event handler");
-			//PT_WAIT_THREAD(pt, gsm.PT_GPRS_check_conn_state(&comm_inside_pt, &ret));
-			//LOG("Done conn check");
-			//PT_YIELD(pt);
 		} else if (gsm_curr_state == gsm_send_http_status) {
 			last_status = millis();
                         strcpy_P(tmp_buff, PSTR("http://dl2.zsuatt.com/status.php"));
@@ -362,8 +436,6 @@ static int protothread_comm(struct pt *pt, int interval) {
                         strcat(tmp_buff, gsm.GSM_get_ci());
                         strcat_P(tmp_buff, PSTR("&t="));
 			dtostrf(curr_temperature, 4, 3, smallbuff);
-			//fmtDouble(curr_temperature, 3, smallbuff, 12);
-			//fmtUnsigned(analog_values[15], smallbuff, 12);
                         strcat(tmp_buff, smallbuff);
 			strcat_P(tmp_buff, PSTR("&hum="));
 			dtostrf(curr_humidity, 4,3,smallbuff);
@@ -382,6 +454,9 @@ static int protothread_comm(struct pt *pt, int interval) {
 			sd.close(DATALOG);
                         strcat_P(tmp_buff, PSTR("&cls="));
 			fmtUnsigned(filesize, smallbuff, 12);
+			strcat(tmp_buff, smallbuff);
+			strcat_P(tmp_buff, PSTR("&v="));
+			fmtUnsigned(curr_voltage, smallbuff, 12);
 			strcat(tmp_buff, smallbuff);
                         
 			PT_WAIT_THREAD(pt, http.PT_GET(&comm_child_pt, &ret, tmp_buff));
@@ -424,7 +499,7 @@ static int protothread_comm(struct pt *pt, int interval) {
 static int protothread_serial(struct pt *pt, int interval) {
 	static struct pt child_pt;
 	static long timestamp;
-	long filesize;
+	int32_t filesize;
 	char c;
 	PT_BEGIN(pt);
 	while (1) {
@@ -440,27 +515,40 @@ static int protothread_serial(struct pt *pt, int interval) {
                         if (sd.is_available() < 0)
                                 sd.init();
                         filesize = sd.open(SERIALLOG, O_RDWR | O_CREAT | O_APPEND);
-                        if (filesize > SERIAL_MAX_FILESIZE) {
-                                sd.close(SERIALLOG);
-                                sd.increment_file(SERIALLOG);
-                                //cfg.save_files_count(0);
-                                filesize = sd.open(SERIALLOG, O_RDWR | O_CREAT | O_APPEND);
-                        }
-                        sd.write(SERIALLOG, ext_buff);
-                        //sd.close(SERIALLOG);
-			LOG("Wrote external serial data");	
+                 	if (filesize != -1) {
+				if (filesize > SERIAL_MAX_FILESIZE) {
+                        	        sd.close(SERIALLOG);
+                        	        sd.increment_file(SERIALLOG);
+                        	        //cfg.save_files_count(0);
+                        	        filesize = sd.open(SERIALLOG, O_RDWR | O_CREAT | O_APPEND);
+                       		}
+                        	sd.write(SERIALLOG, ext_buff);
+	                        //sd.close(SERIALLOG);
+				LOG("Wrote external serial data");	
+			}
 		}
 	}
 	PT_END(pt);
 } 
 
+static int protothread_wdt(struct pt *pt, int interval) {
+	static struct pt child_pt;
+	static long timestamp;
+	PT_BEGIN(pt);
+	while (1) {
+		PT_WAIT_UNTIL(pt, (millis()-timestamp) >= interval);
+		timestamp = millis();
+		ext_wdt_reset();
+	}
+	PT_END(pt);
+}
 
 #define SET_IF_MAX(v,a) { \
 	if (a > v) v = a; \
 	} 
 
 void loop() {
-	int ts = millis();
+	uint32_t ts = millis();
 	protothread_sys(&threads[THREAD_SYS].pt, 100);
 	SET_IF_MAX(threads[THREAD_SYS].timing, millis()-ts);
 	ts = millis();
@@ -472,6 +560,14 @@ void loop() {
 	ts = millis();
 	protothread_serial(&threads[THREAD_SER].pt, 1000);
 	SET_IF_MAX(threads[THREAD_SER].timing, millis()-ts);
+	ts = millis();
+	protothread_wdt(&threads[THREAD_WDT].pt, 600);
+	SET_IF_MAX(threads[THREAD_WDT].timing, millis()-ts);
 	main_iter_cnt++;
+
+//	set_sleep_mode(SLEEP_MODE_IDLE);
+//	sleep_enable();
+//	sleep_mode();
+//	sleep_disable(); 
 }
 

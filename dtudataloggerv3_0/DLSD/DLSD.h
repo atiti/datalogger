@@ -5,7 +5,7 @@
 #include <DLCommon.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
-#include <Fat16.h>
+#include <SdFat.h>
 #include <string.h>
 
 #define CONFIG 0
@@ -49,8 +49,8 @@ class DLSD
 		uint8_t _CS;
 		uint8_t _DEBUG;
 		int8_t _inited;
-		SdCard _card;
-		Fat16 _files[NUM_FILES];
+		SdFat _card;
+		SdFile _files[NUM_FILES];
 		boolean _files_open[NUM_FILES];
 		uint16_t _files_count[NUM_FILES];
 		uint16_t _saved_count[NUM_FILES];

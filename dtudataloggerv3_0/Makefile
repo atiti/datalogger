@@ -1,10 +1,13 @@
 # Configuring target etc
 TARGET=datalogger_skel
+#TARGET=bandgap
+#TARGET=deepsleep
 MCU=atmega1284p
 F_CPU=16000000
 FORMAT=ihex
-#UPLOAD_RATE=115200
-UPLOAD_RATE=19200
+UPLOAD_RATE=115200
+#UPLOAD_RATE=19200
+#UPLOAD_RATE=57600
 ARDUINO_DIR=/home/attila/Documents/arduino-1.0.1
 ARDUINO_VARIANT=$(ARDUINO_DIR)/hardware/mighty-1284p/variants/standard/
 AVR_BIN=/usr/bin/ # avr-gcc bin

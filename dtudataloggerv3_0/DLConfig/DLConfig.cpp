@@ -101,12 +101,12 @@ int DLConfig::log_process_callback(char *line, int len) {
 				Serial.println(_buff);
 			}
 		} else if (line[5] == 'S') { // HTTP_STATUS_TIME
-			_config->http_status_time = atol(param)*60;
+			_config->http_status_time = atol(param)*60*1000;
 			get_from_flash_P(PSTR("HST: "), _buff);
 			Serial.print(_buff);
 			Serial.println(_config->http_status_time, DEC);
 		} else if (line[5] == 'U' && line[6] == 'P') { // HTTP_UPLOAD_TIME
-			_config->http_upload_time = atol(param)*60;
+			_config->http_upload_time = atol(param)*60*1000;
 			get_from_flash_P(PSTR("HUT: "), _buff);
 			Serial.print(_buff);
 			Serial.println(_config->http_upload_time, DEC);
@@ -129,9 +129,11 @@ int DLConfig::log_process_callback(char *line, int len) {
 }
 
 uint8_t DLConfig::load() {
-	unsigned long filesize = 0;
+	int32_t filesize = 0;
 	if (_sd->is_available() > 0) {
 		filesize = _sd->open(CONFIG, O_READ);
+		if (filesize == -1)
+			return 0;
 		_sd->rewind(CONFIG);
 		int rv = 0;
 		do {

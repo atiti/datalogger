@@ -3,35 +3,39 @@
 
 #define MASK(v,p) (v & (0x1 << p))
 
-char previous_portvals = 0;
+volatile char previous_portvals = 0;
 volatile double _vals[NUM_IO] = { 0 };
 volatile double _std_dev[NUM_IO] = { 0 };
 volatile double _mins[NUM_IO] = { 9999.0 };
 volatile double _maxs[NUM_IO] = { 0 };
+volatile uint32_t _cnt_vals[NUM_DIGITAL] = { 0 };
 volatile uint8_t _AOD[NUM_IO] = { IO_OFF };
+volatile uint32_t isr_cnt = 0;
 
-/*
 ISR(DIGITAL_ISR_VECT) {
-	char portvals, i;
+	unsigned char portvals, i;
+	unsigned char changed;
 	portvals = DIGITAL_PORT;
+	changed = portvals ^ previous_portvals;
+
 	for(i = 0; i < NUM_DIGITAL; i++) {
 		if (_AOD[DIGITAL_OFFSET+i] == IO_EVENT) { 
-			if (!MASK(previous_portvals, i) && MASK(portvals, i)) { // Rising edge
+			if (!MASK(previous_portvals, 7-i) && MASK(portvals, 7-i)) { // Rising edge
 				_vals[DIGITAL_OFFSET+i] = 1;
-				_std_dev[DIGITAL_OFFSET+i] = millis();
+				_std_dev[DIGITAL_OFFSET+i] = (uint32_t)millis();
 			} 
-			else if (MASK(previous_portvals, i) && !MASK(portvals, i)) { // Falling edge
+			else if (MASK(previous_portvals, 7-i) && !MASK(portvals, 7-i)) { // Falling edge
 				_vals[DIGITAL_OFFSET+i] = 0;
-				_std_dev[DIGITAL_OFFSET+i] = millis();
+				_std_dev[DIGITAL_OFFSET+i] = (uint32_t)millis();
 			}
-		} else if (_AOD[DIGITAL_OFFSET+i] == IO_COUNTER) {
-			if (!MASK(previous_portvals, i) && MASK(portvals, i)) { // Only deal with rising edge
-				_vals[DIGITAL_OFFSET+i]++;
-			}
+		} else if (_AOD[DIGITAL_OFFSET+i] == IO_COUNTER && MASK(changed, 7-i) && MASK(portvals, 7-i)) {
+				_cnt_vals[i]++;
 		}
 	}
+	previous_portvals = portvals;
+	isr_cnt++;
 }
-*/
+
 DLMeasure::DLMeasure()
 {
 	_sum_cnt = 0;
@@ -42,14 +46,15 @@ DLMeasure::DLMeasure()
 
 void DLMeasure::init() {
 	_count_start = 0;
-	for(uint8_t i=ANALOG_OFFSET;i<(ANALOG_OFFSET+NUM_ANALOG);i++) {
+	for(uint8_t i=ANALOG_OFFSET;i<NUM_IO;i++) {
 		_AOD[i] = IO_OFF;
 		pinMode(num2pin_mapping[i], INPUT);
+		digitalWrite(num2pin_mapping[i], HIGH); // Turn on internal pullup
 	}
 	// Enable PCINT for digital ports
 	DIGITAL_PCMSK = DIGITAL_PCMSK_VAL; // Only enable the ports in use
 	PCICR |= (1 << DIGITAL_PCIE);
-
+	_smeasure = 0;
 	enable();
 }
 
@@ -101,8 +106,18 @@ uint16_t DLMeasure::read(uint8_t pin){
 uint8_t DLMeasure::read_all(uint8_t itr){
 	uint16_t v = 0;
 	double tmpv = 0.0;
-	for(uint8_t i = ANALOG_OFFSET; i < (ANALOG_OFFSET+NUM_ANALOG); i++) {
-		read(i);
+	if (_smeasure == 0)
+		_smeasure = millis();
+
+	for(uint8_t i = ANALOG_OFFSET; i < NUM_IO; i++) {
+		if (_AOD[i] == IO_COUNTER) {
+			tmpv = (double)_cnt_vals[i-DIGITAL_OFFSET];
+			_cnt_vals[i-DIGITAL_OFFSET] = 0;
+			_vals[i] += tmpv;
+			_std_dev[i] += tmpv*tmpv;
+		} else {
+			read(i);
+		}
 	}
 	_sum_cnt++;
 	return _sum_cnt;		 
@@ -114,40 +129,36 @@ uint8_t DLMeasure::read_all() {
 
 uint8_t DLMeasure::get_all() {
 	uint8_t rdy = 0;
-	for(uint8_t i=ANALOG_OFFSET;i<(ANALOG_OFFSET+NUM_ANALOG);i++) {
+	double dtime = ((double)millis() - (double)_smeasure) / 1000.0;
+	
+	for(uint8_t i=ANALOG_OFFSET;i<NUM_IO;i++) {
 			if (_AOD[i] == IO_ANALOG) { // Only process analog
 				_std_dev[i] = (double)(sqrt((_sum_cnt*_std_dev[i]) - (_vals[i]*_vals[i])) / _sum_cnt); // Rolling stddev
 				_vals[i] = (double)(_vals[i] / _sum_cnt); // Mean
 			} else if (_AOD[i] == IO_COUNTER) {
-				_std_dev[i] = (double)(sqrt((_sum_cnt*_std_dev[i]) - (_vals[i]*_vals[i])) / _sum_cnt);
-				_vals[i] = (double)((_vals[i] / _sum_cnt) * MEASURE_MULTIPLIER);
-//				_vals[i] = _vals[i] * MEASURE_MULTIPLIER;
-//				_std_dev[i] = (double)(sqrt(_std_dev[i] / (_sum_cnt-1)));
+				_std_dev[i] = (double)(sqrt((dtime*_std_dev[i]) - (_vals[i]*_vals[i])) / dtime);
+				_vals[i] = (double)(_vals[i] / dtime);
 			}		
 	}
-	_smeasure = 0;
 	rdy = 1;
-	
+	_smeasure = 0;	
 	return rdy;
 }
 
 void DLMeasure::reset() {
-	for(uint8_t i=ANALOG_OFFSET;i<(ANALOG_OFFSET+NUM_ANALOG);i++) {
+	for(uint8_t i=ANALOG_OFFSET;i<NUM_IO;i++) {
 		if (_AOD[i] == IO_DIGITAL || _AOD[i] == IO_ANALOG) {
 			_vals[i] = 0;
 			_std_dev[i] = 0;
 			_maxs[i] = 0;
 			_mins[i] = 1024;
-		} else if (_AOD[i] == IO_COUNTER && _smeasure == 0) {
+		} else if (_AOD[i] == IO_COUNTER) {
 			_std_dev[i] = 0;
 			_vals[i] = 0;
 		}
 	}
-	if (_smeasure == 0) {
-		_sum_cnt = 0;
-		_count_start = 0;
-	}
-	//get_bandgap();
+	_sum_cnt = 0;
+	_smeasure = 0;	
 }
 
 void DLMeasure::set_int_fun(INT_callback fun) {
@@ -157,6 +168,9 @@ void DLMeasure::set_int_fun(INT_callback fun) {
 void DLMeasure::set_pin(uint8_t pin, uint8_t doa){
 	if ((pin == 0 || pin == 1) && doa == IO_EVENT && _int_ptr) {
 //		attachInterrupt(pin, (INT_callback)_int_ptr, CHANGE);
+	}
+	if (doa != IO_OFF) {
+		digitalWrite(num2pin_mapping[pin], LOW); // Turn off interal pullup
 	}
 	_AOD[pin] = doa;
 }
@@ -171,7 +185,7 @@ void DLMeasure::time_log_line(char *line) {
 	strcpy(line, "T");
 	fmtUnsigned(now(), tmpbuff, 12);
 	strcat(line, tmpbuff);
-	for(uint8_t i=ANALOG_OFFSET;i<(ANALOG_OFFSET+NUM_ANALOG);i++) {
+	for(uint8_t i=ANALOG_OFFSET;i<NUM_IO;i++) {
 		if (_AOD[i] != IO_OFF)
 			strcat(line, " ");
 

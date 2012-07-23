@@ -14,7 +14,7 @@
 #define NUM_IO (NUM_ANALOG+NUM_DIGITAL) // Total number of IO ports
 
 /* PC Interrupt definition */
-#define DIGITAL_PORT PORTC 
+#define DIGITAL_PORT PINC 
 #define DIGITAL_PCIE PCIE2
 #define DIGITAL_PCMSK PCMSK2 // PCINT23-16
 #define DIGITAL_PCMSK_VAL 0xF8  // pins 23-18
@@ -32,24 +32,24 @@
 #define IO_COUNTER 4
 
 #define MEASURE_RATE 500
-#define MEASURE_MULTIPLIER 2
+#define MEASURE_MULTIPLIER 1
 
 typedef void (*INT_callback)();
 
-const char num2pin_mapping[] = { 24, // AI0
-				25, // AI1
-				26, // AI2
-				27, // AI3
-				28, // AI4
-				29, // AI5
-				30, // AI6
-				31, // AI7
-				23, // D23
-				22, // D22
-				21, // D21
-				20, // D20
-				19, // D19
-				18 // D18
+const char num2pin_mapping[] = { 24, // Port 0 - AI0
+				25, // Port 1 - AI1
+				26, // Port 2 - AI2
+				27, // Port 3 - AI3
+				28, // Port 4 - AI4
+				29, // Port 5 - AI5
+				30, // Port 6 - AI6
+				31, // Port 7 - AI7
+				2, // Port 8 - D23
+				2, // Port 9 - D22
+				21, // Port 10 - D21
+				20, // Port 11 - D20
+				19, // Port 12 - D19
+				18 // Port 13 - D18
 				};
 
 class DLMeasure

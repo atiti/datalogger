@@ -28,7 +28,7 @@ int8_t DLSD::init() {
 //	if (_fullspeed)
 //		ret = _card.init(SPI_FULL_SPEED, _CS);
 //	else
-	ret = _card.init(_fullspeed, _CS);
+/*	ret = _card.init(_fullspeed, _CS);
 	if (!ret) { // Failed to initialize card
 		_inited = -1;
 		return -1;
@@ -37,6 +37,11 @@ int8_t DLSD::init() {
 	if (!Fat16::init(&_card)) { // Failed to initialize volume
 		_inited = -2;
 		return -2;
+	}
+*/
+	if (!_card.begin(_CS, _fullspeed)) {
+		_inited = -1;
+		return -1;
 	}
 	_inited = 1;
 	return 1;
@@ -102,11 +107,12 @@ unsigned long DLSD::open(uint8_t n, uint8_t flags) {
 	uint8_t ret;
 	unsigned long fsize = 0;
 	digitalWrite(_CS, LOW);
-	for(int j=0;j<4;j++) {
+/*	for(int j=0;j<4;j++) {
 		if (_files_open[j] == true && j != n) {
 			close(n);
 		}
 	}
+*/
 	if (_files_open[n] == false) {
 		get_from_flash(&(sd_filename_table[n]), _filename);
 		if (n != 0)

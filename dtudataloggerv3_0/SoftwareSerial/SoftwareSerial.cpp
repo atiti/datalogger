@@ -312,7 +312,7 @@ ISR(PCINT1_vect)
 }
 #endif
 
-#if defined(PCINT2_vect)
+#if defined(PCINT2_vect) && !defined(__AVR_ATmega1284P__)
 ISR(PCINT2_vect)
 {
   SoftwareSerial::handle_interrupt();

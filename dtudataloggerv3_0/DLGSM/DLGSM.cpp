@@ -43,7 +43,7 @@ PROGMEM const char *gprs_init_string_table[] = { gprs_init_string_0, gprs_init_s
                                                  gprs_init_string_6, gprs_init_string_7, gprs_init_string_8,
                                                  gprs_init_string_9 };
 
-prog_char gsm_string_0[] PROGMEM = "AT+CGREG?\r\n";
+prog_char gsm_string_0[] PROGMEM = "AT+CREG?\r\n";
 prog_char gsm_string_1[] PROGMEM = "AT+CIPSTART=\"TCP\",\"";
 prog_char gsm_string_2[] PROGMEM = "AT+CIPSTART=\"UDP\",\"";
 prog_char gsm_string_3[] PROGMEM = "AT+CIPSEND\r\n";
@@ -102,6 +102,8 @@ DLGSM::DLGSM()
         _gsm_callback = NULL;
 	_gsm_wline = 0;
 	_sendsize = 0;
+	_tout_cnt = 0;
+	_error_cnt = 0;
 }
         
 #ifdef USE_PT
@@ -111,7 +113,7 @@ int DLGSM::PT_recvline(struct pt *pt, char *ret, char *ptr, int len, int tout, c
 	static uint32_t ts = 0;
 	PT_BEGIN(pt);
 	gsm_pt_i = 0;
-
+	*ret = 0;
         while (gsm_pt_i < len) {
 		PT_WAIT_UNTIL(pt, _gsmserial.available() > 0 || (millis() - ts) > tout);
         	ts = millis();
@@ -133,6 +135,7 @@ int DLGSM::PT_recvline(struct pt *pt, char *ret, char *ptr, int len, int tout, c
 				*ret = gsm_pt_i;
                                 PT_EXIT(pt);
                         }
+			_tout_cnt = 0;
                 } else if (_gsm_wline) {
 			ptr[gsm_pt_i] = 0;
 			Serial.print("Line: ");
@@ -140,6 +143,7 @@ int DLGSM::PT_recvline(struct pt *pt, char *ret, char *ptr, int len, int tout, c
 			if (process)
 				GSM_process_line(NULL);
 			*ret = gsm_pt_i;
+			_tout_cnt++;
 			PT_EXIT(pt);
 		}
         }
@@ -176,8 +180,9 @@ int DLGSM::PT_send_recv(struct pt *pt, char *ret, char *cmd, int tout) {
 	PT_BEGIN(pt);
 	*ret = 0;
 	gotsmtg = 0;
+	ts = millis();
 	GSM_send(cmd);
-	PT_WAIT_UNTIL(pt, _gsmserial.available() || (millis() - ts) > 1000);
+	PT_WAIT_UNTIL(pt, _gsmserial.available() || (millis() - ts) > tout);
 	ts = millis();
 
 	if (!_gsmserial.available()) {
@@ -189,6 +194,8 @@ int DLGSM::PT_send_recv(struct pt *pt, char *ret, char *cmd, int tout) {
 		PT_WAIT_THREAD(pt, PT_recvline(&linerecv_pt, ret, _gsm_buff, _gsm_buffsize, tout, 1));
 		if (*ret > gotsmtg)
 			gotsmtg = *ret;
+		else if (*ret == 0)
+			_tout_cnt++;
 		ts = millis();
 	}
 	if (*ret == 0)
@@ -205,25 +212,31 @@ int DLGSM::PT_send_recv_confirm(struct pt *pt, char *ret, char *cmd, char *conf,
 	*ret = 0;
 	if (cdown == 0)
 		cdown = 5;
+	ts = millis();
 	GSM_send(cmd);
 	PT_WAIT_UNTIL(pt, _gsmserial.available() || (millis() - ts) > tout);
-	ts = millis();
 	
 	if (!_gsmserial.available()) {
 		//PT_RESTART(pt);
+		Serial.println(millis()-ts);
 		*ret = 0;
 		PT_EXIT(pt);
 	}
+	ts = millis();
 	startts = millis();
 	_gsm_wline = 1;
-	while (_gsmserial.available() || (millis() - startts) < 10000) { 
+	while (_gsmserial.available() || (millis() - startts) < tout) { 
 		PT_WAIT_THREAD(pt, PT_recvline(&linerecv_pt, ret, _gsm_buff, _gsm_buffsize, tout, 1));
 		ts = millis();
+		if (*ret == 0)
+			_tout_cnt++;
+
 		if (conf != NULL && strstr(_gsm_buff, conf) != NULL) {
 			*ret = 1;
 			PT_EXIT(pt);
 		} else if (conf != NULL && (strstr(_gsm_buff, "ERROR") != NULL || strstr(_gsm_buff, "FAIL") != NULL)) {
 			*ret = 2;
+			_error_cnt++;
 			PT_EXIT(pt);
 		} else if (conf != NULL)
 			*ret = 0;
@@ -246,7 +259,6 @@ int DLGSM::PT_GSM_init(struct pt *pt, char *ret) {
 		iret = 0;
                 get_from_flash(&(gsm_init_string_table[k]), _gsm_buff);
 		PT_WAIT_THREAD(pt, PT_send_recv_confirm(&child_pt, &iret, _gsm_buff, "OK", 1000));
-		Serial.println("ye");
 		if (iret > 0)
 			k++;
         }
@@ -270,12 +282,18 @@ int DLGSM::PT_GPRS_init(struct pt *pt, char *ret) {
         	*ret = 0;
 	        get_from_flash(&(gprs_init_string_table[k]), _gsm_buff);
 		if (k != (len-1)) {
-                	PT_WAIT_THREAD(pt, PT_send_recv_confirm(&child_pt, ret, _gsm_buff, "OK", 1000));
+                	PT_WAIT_THREAD(pt, PT_send_recv_confirm(&child_pt, ret, _gsm_buff, "OK", 30000));
 		} else {
-			PT_WAIT_THREAD(pt, PT_send_recv(&child_pt, ret, _gsm_buff, 3000));
+			PT_WAIT_THREAD(pt, PT_send_recv(&child_pt, ret, _gsm_buff, 10000));
 		}
                 if (*ret > 0)
 			k++;
+		else {
+			if (_tout_cnt > 10) {
+				PT_WAIT_THREAD(pt, PT_restart(&child_pt, ret));
+				_tout_cnt = 0;
+			}
+		}
 		if (k == GPRS_INIT_ATTACH_CMD)
                         GSM_set_timeout(25);
         }
@@ -307,6 +325,26 @@ int DLGSM::PT_GSM_event_handler(struct pt *pt, char *ret) {
 	PT_END(pt);
 }
 
+int DLGSM::PT_check_flag(struct pt *pt, char flag) {
+	static struct pt child_pt;
+	static uint32_t ts;
+	char iret;
+	PT_BEGIN(pt);
+	ts = millis();
+	do {
+                get_from_flash(&(gprs_init_string_table[0]), _gsm_buff);
+                GSM_send(_gsm_buff);
+		PT_WAIT_THREAD(pt, PT_GSM_event_handler(&child_pt, &iret));
+		get_from_flash(&(gsm_string_table[0]), _gsm_buff);
+		GSM_send(_gsm_buff);
+		PT_WAIT_THREAD(pt, PT_GSM_event_handler(&child_pt, &iret));
+		PT_WAIT_UNTIL(pt, (millis() - ts) > 1000);
+		ts = millis();
+	} while (CONN_get_flag(flag) == 0);
+
+	PT_END(pt);
+}
+
 
 int DLGSM::PT_GPRS_check_conn_state(struct pt *pt, char *ret) {
 	static struct pt child_pt;
@@ -327,7 +365,9 @@ int DLGSM::PT_GPRS_check_conn_state(struct pt *pt, char *ret) {
                                 if (k == GPRSS_IP_INITIAL ||
                                     k == GPRSS_IP_START ||
                                     k == GPRSS_IP_CONFIG) { // Reinitialize GPRS
+						PT_WAIT_WHILE(pt, CONN_get_flag(CONN_NETWORK) == 0);
 						PT_WAIT_THREAD(pt, PT_GSM_init(&child_pt, &iret));
+						PT_WAIT_WHILE(pt, CONN_get_flag(CONN_GPRS_NET) == 0);
 						PT_WAIT_THREAD(pt, PT_GPRS_init(&child_pt, &iret));              
                                 } else if (k == GPRSS_IP_GPRSACT) { // Just need to query the local IP...
                                 	get_from_flash(&(gprs_init_string_table[9]), _gsm_buff);
@@ -338,7 +378,9 @@ int DLGSM::PT_GPRS_check_conn_state(struct pt *pt, char *ret) {
                                            k == GPRSS_UDP_CLOSED) {
                                 	CONN_set_flag(CONN_CONNECTED, 0);
                                 } else if (k == GPRSS_PDP_DEACT) { // Reinitialize GPRS
-                                	PT_WAIT_THREAD(pt, PT_GSM_init(&child_pt, &iret));
+                                	PT_WAIT_WHILE(pt, CONN_get_flag(CONN_NETWORK) == 0);
+					PT_WAIT_THREAD(pt, PT_GSM_init(&child_pt, &iret));
+					PT_WAIT_WHILE(pt, CONN_get_flag(CONN_GPRS_NET) == 0);
 					PT_WAIT_THREAD(pt, PT_GPRS_init(&child_pt, &iret));
 				}
                                 *ret = k;
@@ -418,7 +460,7 @@ int DLGSM::PT_GPRS_connect(struct pt *pt, char *ret, char *server, short port, b
 	sprintf(shortbuff, "%s\",\"%d\"\r\n", server, port);
         strcat(_gsm_buff, shortbuff);
 
-	PT_WAIT_THREAD(pt, PT_send_recv_confirm(&child_pt, &r, _gsm_buff, "CONNECT", 10000));
+	PT_WAIT_THREAD(pt, PT_send_recv_confirm(&child_pt, &r, _gsm_buff, "CONNECT", 30000));
 	if (r != 1) {
 		PT_EXIT(pt);
 	}
@@ -487,6 +529,8 @@ int DLGSM::PT_GPRS_close(struct pt *pt, char *ret) {
 
 int DLGSM::PT_pwr_on(struct pt *pt) {
 	static uint32_t ts;
+	static struct pt child_pt;
+	char ret;
 	PT_BEGIN(pt);
 	pinMode(GSM_PWR, OUTPUT);
         if (!CONN_get_flag(CONN_PWR)) {
@@ -504,12 +548,16 @@ int DLGSM::PT_pwr_on(struct pt *pt) {
 		PT_WAIT_UNTIL(pt, (millis() - ts) > 3000);
                 
 		CONN_set_flag(CONN_PWR, 1);
+	        PT_WAIT_THREAD(pt, PT_recv(&child_pt, &ret, "Call Ready", 3000));
         }
+	_gsmserial.flush();
 	PT_END(pt);
 }
 
 int DLGSM::PT_pwr_off(struct pt *pt, uint8_t force) {
+	static struct pt child_pt;
 	static uint32_t ts;
+	char ret;
 	PT_BEGIN(pt);
 	pinMode(GSM_PWR, OUTPUT);
         if (CONN_get_flag(CONN_PWR) || force) {
@@ -529,7 +577,54 @@ int DLGSM::PT_pwr_off(struct pt *pt, uint8_t force) {
                 CONN_set_flag(CONN_NETWORK, 0);
                 CONN_set_flag(CONN_SENDING, 0);
                 CONN_set_flag(CONN_CONNECTED, 0);
-        }
+                PT_WAIT_THREAD(pt, PT_recv(&child_pt, &ret, "DOWN", 3000));
+	}
+	_gsmserial.flush();
+	PT_END(pt);
+}
+
+int DLGSM::PT_restart(struct pt *pt, char *ret) {
+	static struct pt child_pt;
+	static uint32_t timestamp;
+	static char u;
+	char iret;
+	PT_BEGIN(pt);
+        u = 0;                
+	while (u < 3) {
+        	PT_WAIT_THREAD(pt, PT_send_recv_confirm(&child_pt, &iret, "AT\r\n", "OK", 1000));
+                if (iret > 0) {
+        		PT_WAIT_THREAD(pt, PT_pwr_off(&child_pt, 1));
+                        u = 3;
+                } else {
+                	PT_WAIT_UNTIL(pt, (millis() - timestamp > 1000));
+                        timestamp = millis();
+                        u++;
+			Serial.println(u, DEC);
+        	}
+	}
+
+	timestamp = millis();
+	if (iret == 1)
+		PT_WAIT_THREAD(pt, PT_pwr_off(&child_pt, 0));
+
+	PT_WAIT_UNTIL(pt, (millis() - timestamp) > 6000);
+	
+	PT_WAIT_THREAD(pt, PT_pwr_on(&child_pt));
+
+	PT_WAIT_THREAD(pt, PT_GSM_init(&child_pt, ret));
+
+	_error_cnt = 0;
+	_tout_cnt = 0;
+	u = 0;
+	*ret = 1;
+	PT_END(pt);
+}
+
+int DLGSM::PT_handle_errors(struct pt *pt) {
+	static struct pt child_pt;
+	PT_BEGIN(pt);
+
+
 	PT_END(pt);
 }
 
@@ -683,12 +778,19 @@ uint8_t DLGSM::GSM_process_line(char *check) {
 		if (tpos && tpos[1] != '"')
 			i = tpos[1] - '0';
 
-		if (i == 1)
-			CONN_set_flag(CONN_NETWORK,1);
-		else if (i == 0 || (i > 1 && i < 6) ) {
-			CONN_set_flag(CONN_NETWORK,0);
-			CONN_set_flag(CONN_SENDING,0);
-			CONN_set_flag(CONN_CONNECTED,0);
+		if (_gsm_buff[2] == 'G') {
+			if (i == 1)
+				CONN_set_flag(CONN_GPRS_NET, 1);
+			else
+				CONN_set_flag(CONN_GPRS_NET, 0);
+		} else {
+			if (i == 1)
+				CONN_set_flag(CONN_NETWORK,1);
+			else if (i == 0 || (i > 1 && i < 6) ) {
+				CONN_set_flag(CONN_NETWORK,0);
+				CONN_set_flag(CONN_SENDING,0);
+				CONN_set_flag(CONN_CONNECTED,0);
+			}
 		}
 		
 		tpos = strchr(_gsm_buff, '"');
