@@ -266,6 +266,7 @@ void setup() {
 	// Finally enable our internal watchdog
 	wdt_enable(WDTO_8S); 
         ext_wdt_reset();
+	dl_start_time = now();
 }
 
 /* System thread
@@ -513,6 +514,13 @@ static int protothread_comm(struct pt *pt, int interval) {
                         get_from_flash_P(PSTR("R: "), tmp_buff);
                         Serial.print(tmp_buff);
                         Serial.println(v, DEC);
+
+			// Syncronise RTC to server time
+			if (RTC.get() < (now()-360) || RTC.get() > (now()+360)) {
+				sys_log_message("Syncing RTC time");
+				RTC.set(now());
+			}
+
 			if (ret) {
 				gsm_curr_state = gsm_idle;
 			}
