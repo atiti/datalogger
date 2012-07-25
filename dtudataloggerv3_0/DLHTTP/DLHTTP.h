@@ -8,6 +8,9 @@
 #include <string.h>
 #include <DLGSM.h>
 
+// This is the delta time that should be different in order to sync with HTTP time
+#define TIME_DELTA 120
+
 static struct pt http_child_pt;
 
 class DLHTTP

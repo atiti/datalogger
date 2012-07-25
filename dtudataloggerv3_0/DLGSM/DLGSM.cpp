@@ -127,10 +127,15 @@ int DLGSM::PT_recvline(struct pt *pt, char *ret, char *ptr, int len, int tout, c
                         if (cchar == '\n') {
                                 ptr[gsm_pt_i] = 0;
 				if (gsm_pt_i > 2) {
-					Serial.print("Line: ");
-					Serial.println(ptr);
+					if (_DEBUG) {
+						Serial.print("Line: ");
+						Serial.println(ptr);
+					}
+					
 					if (process)
 						GSM_process_line(NULL);
+					if (_gsm_callback)
+						_gsm_callback(ptr, gsm_pt_i);
 				}
 				*ret = gsm_pt_i;
                                 PT_EXIT(pt);
@@ -138,10 +143,15 @@ int DLGSM::PT_recvline(struct pt *pt, char *ret, char *ptr, int len, int tout, c
 			_tout_cnt = 0;
                 } else if (_gsm_wline) {
 			ptr[gsm_pt_i] = 0;
-			Serial.print("Line: ");
-			Serial.println(ptr);
+			if (_DEBUG) {
+				Serial.print("Line: ");
+				Serial.println(ptr);
+			}
+
 			if (process)
 				GSM_process_line(NULL);
+			if (_gsm_callback)
+				_gsm_callback(ptr, gsm_pt_i);
 			*ret = gsm_pt_i;
 			_tout_cnt++;
 			PT_EXIT(pt);
@@ -547,7 +557,7 @@ int DLGSM::PT_pwr_on(struct pt *pt) {
 		PT_WAIT_UNTIL(pt, (millis() - ts) > 3000);
                 
 		CONN_set_flag(CONN_PWR, 1);
-	        PT_WAIT_THREAD(pt, PT_recv(&child_pt, &ret, "Call Ready", 30000));
+	        PT_WAIT_THREAD(pt, PT_recv(&child_pt, &ret, "Call Ready", 15000));
         }
 	_gsmserial.flush();
 	PT_END(pt);
@@ -576,7 +586,7 @@ int DLGSM::PT_pwr_off(struct pt *pt, uint8_t force) {
                 CONN_set_flag(CONN_NETWORK, 0);
                 CONN_set_flag(CONN_SENDING, 0);
                 CONN_set_flag(CONN_CONNECTED, 0);
-                PT_WAIT_THREAD(pt, PT_recv(&child_pt, &ret, "DOWN", 30000));
+                PT_WAIT_THREAD(pt, PT_recv(&child_pt, &ret, "DOWN", 15000));
 	}
 	_gsmserial.flush();
 	PT_END(pt);

@@ -8,12 +8,15 @@ Pchar header_string_0[] = "Connection: close\r\n";
 //Pchar header_string_1[] = "Content-Type: application/x-www-form-urlencoded\r\n";
 PROGMEM const char *header_string_table[] = { header_string_0 };
 
-uint8_t backend_err = 999;
+uint8_t backend_err = 255;
 
 int HTTP_process_reply(char *line, int len) {
+	long timestamp = 0;
 	if (line[0] == 'T' && line[1] == 'S') { // Get the unix timestamp from server
 		if (strlen(line+3) >= 10) {
-			setTime(atol(line+3));
+			timestamp = atol(line+3);
+			if (abs(now()-timestamp) > TIME_DELTA)
+				setTime(timestamp);
 		}
 	} else if (line[0] == 'E' && line[1] == 'R') { // ERR code
 		backend_err = atoi(line+4);
@@ -39,7 +42,7 @@ int DLHTTP::PT_backend_start(struct pt *pt, char *ret, char *host, uint16_t port
 
 	PT_BEGIN(pt);
 
-
+	*_backend_err = 255;	
 	PT_WAIT_THREAD(pt, _gsm->PT_GPRS_connect(&child_pt, ret, host, port, true));
 	if (*ret != 1) {
 		error_cnt++;
@@ -99,8 +102,12 @@ int DLHTTP::PT_GET(struct pt *pt, char *ret, char *url) {
         
 	PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_end(&child_pt, ret));
 
+	_gsm->GSM_set_callback(HTTP_process_reply);
+
         PT_WAIT_THREAD(pt, _gsm->PT_recv(&child_pt, ret, "CLOSED", 3000));
         
+	_gsm->GSM_set_callback(NULL);
+
 	PT_WAIT_THREAD(pt, PT_backend_end(&child_pt, ret));
 
 	PT_END(pt);
@@ -198,8 +205,12 @@ int DLHTTP::PT_POST_end(struct pt *pt, char *ret) {
 
         PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_end(&child_pt, ret));
 
+	_gsm->GSM_set_callback(HTTP_process_reply);
+
         PT_WAIT_THREAD(pt, _gsm->PT_recv(&child_pt, ret, "CLOSED", 3000));
 
+	_gsm->GSM_set_callback(NULL);
+	
 	PT_WAIT_THREAD(pt, PT_backend_end(&child_pt, ret));
 
 	PT_WAIT_THREAD(pt, _gsm->PT_GPRS_check_conn_state(&child_pt, ret));
@@ -328,15 +339,6 @@ void DLHTTP::POST(char *data, int len) {
 		Serial.println(_sent, DEC);
 		_gsm->GPRS_send_raw(data, len);
 			
-/*		if (_sent == 0)
-			_gsm->GPRS_send_start();	
-		_gsm->GPRS_send_raw(data, len);
-		_sent += len;
-		if (_sent >= 1000) {
-			_gsm->GPRS_send_end();
-			_sent = 0;
-		}
-*/
 	}
 }
 

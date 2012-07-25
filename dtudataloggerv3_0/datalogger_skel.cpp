@@ -264,7 +264,7 @@ void setup() {
         ext_wdt_reset();
 
 	// Finally enable our internal watchdog
-	//wdt_enable(WDTO_8S); 
+	wdt_enable(WDTO_8S); 
         ext_wdt_reset();
 }
 
