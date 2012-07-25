@@ -6,6 +6,9 @@
 extern unsigned int __bss_end;
 extern void *__brkval;
 
+static long _supply_voltage = 0;
+static long InternalReferenceVoltage = 1080L;  // Adust this value to your specific internal BG voltage x1000
+
 static PROGMEM prog_uint32_t crc_table[16] = {
     0x00000000, 0x1db71064, 0x3b6e20c8, 0x26d930ac,
     0x76dc4190, 0x6b6b51f4, 0x4db26158, 0x5005713c,
@@ -60,25 +63,32 @@ uint8_t get_checksum(char *string) {
 	return XOR;
 }
 
-unsigned long crc_update(unsigned long crc, byte data)
-{
-    byte tbl_idx;
-    tbl_idx = crc ^ (data >> (0 * 4));
-    crc = pgm_read_dword_near(crc_table + (tbl_idx & 0x0f)) ^ (crc >> 4);
-    tbl_idx = crc ^ (data >> (1 * 4));
-    crc = pgm_read_dword_near(crc_table + (tbl_idx & 0x0f)) ^ (crc >> 4);
-    return crc;
+unsigned long crc_update(unsigned long crc, byte data) {
+	byte tbl_idx;
+	tbl_idx = crc ^ (data >> (0 * 4));
+	crc = pgm_read_dword_near(crc_table + (tbl_idx & 0x0f)) ^ (crc >> 4);
+	tbl_idx = crc ^ (data >> (1 * 4));
+	crc = pgm_read_dword_near(crc_table + (tbl_idx & 0x0f)) ^ (crc >> 4);
+	return crc;
 }
 
-unsigned long crc_string(char *s)
-{
-  unsigned long crc = ~0L;
-  while (*s)
-    crc = crc_update(crc, *s++);
-  crc = ~crc;
-  return crc;
+unsigned long crc_string(char *s) {
+	unsigned long crc = ~0L;
+	while (*s)
+		crc = crc_update(crc, *s++);
+	crc = ~crc;
+	return crc;
 }
 
+unsigned long crc_struct(char *s, int len) {
+	unsigned long crc = ~0L;
+	int i = 0;
+	for(i=0;i<len;i++)
+		if (s[i] != 0)
+			crc = crc_update(crc, s[i]);
+	crc = ~crc;
+	return crc;
+}
 
 //
 // Produce a formatted string in a buffer corresponding to the value provided.
@@ -185,15 +195,27 @@ fmtDouble(double val, byte precision, char *buf, unsigned bufLen)
   *buf = '\0';
 } 
 
+void set_supply_voltage(long sv) {
+	_supply_voltage = sv;
+}
+
+long get_supply_voltage() {
+	return _supply_voltage;
+}
+
+void set_bandgap(long iref) {
+	InternalReferenceVoltage = iref;
+}
+
 int get_bandgap(void)
 {
-        const long InternalReferenceVoltage = 1091L;  // Adust this value to your specific internal BG voltage x1000
    	int _bandgap;
-	for(uint8_t i=0;i<5;i++) { // Read out 3 times for it to stabilize
 
-                // REFS1 REFS0          --> 0 1, AVcc internal ref.
-                // MUX3 MUX2 MUX1 MUX0  --> 1110 1.1V (VBG)
-                ADMUX = (0<<REFS1) | (1<<REFS0) | (0<<ADLAR) | (1<<MUX4) | (1<<MUX3) | (1<<MUX2) | (1<<MUX1) | (0<<MUX0);
+        // REFS1 REFS0          --> 0 1, AVcc internal ref.
+        // MUX4 MUX3 MUX2 MUX1 MUX0  --> 1110 1.1V (VBG)
+	ADMUX = (0<<REFS1) | (1<<REFS0) | (0<<ADLAR) | (1<<MUX4) | (1<<MUX3) | (1<<MUX2) | (1<<MUX1) | (0<<MUX0);
+
+	for(uint8_t i=0;i<8;i++) { // Read out 3 times for it to stabilize
                 // Start a conversion  
                 ADCSRA |= _BV( ADSC );
                 // Wait for it to complete
@@ -205,3 +227,7 @@ int get_bandgap(void)
       return _bandgap;
 }
 
+void reboot() {
+        wdt_enable(WDTO_15MS); 
+	while (1);
+}

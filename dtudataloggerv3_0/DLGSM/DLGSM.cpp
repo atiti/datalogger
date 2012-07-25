@@ -151,19 +151,21 @@ int DLGSM::PT_recvline(struct pt *pt, char *ret, char *ptr, int len, int tout, c
 }
 
 int DLGSM::PT_recv(struct pt *pt, char *ret, char *conf, int tout) {
-	static uint32_t ts;
+	static uint32_t ts, startts;
 	static struct pt linerecv_pt;
 	
 	PT_BEGIN(pt);
+	ts = millis();
 	*ret = 0;
-	PT_WAIT_UNTIL(pt, _gsmserial.available() || (millis() - ts) > 1000);
+	PT_WAIT_UNTIL(pt, _gsmserial.available() || (millis() - ts) > tout);
 	ts = millis();
 
 	if (!_gsmserial.available()) {
-		PT_RESTART(pt);
+		*ret = 0;
+		PT_EXIT(pt);
 	}
-	
-        while (_gsmserial.available()) {
+	startts = millis();
+        while (_gsmserial.available() || (millis() - startts) < tout) {
                 PT_WAIT_THREAD(pt, PT_recvline(&linerecv_pt, ret, _gsm_buff, _gsm_buffsize, tout, 1));
                 if (conf != NULL && strstr(_gsm_buff, conf) != NULL)
                         *ret = 1;
@@ -190,7 +192,7 @@ int DLGSM::PT_send_recv(struct pt *pt, char *ret, char *cmd, int tout) {
 	}
 	startts = millis();
 	_gsm_wline = 1;
-	while (_gsmserial.available()  || (millis() - startts) < 5000) {
+	while (_gsmserial.available()  || (millis() - startts) < tout) {
 		PT_WAIT_THREAD(pt, PT_recvline(&linerecv_pt, ret, _gsm_buff, _gsm_buffsize, tout, 1));
 		if (*ret > gotsmtg)
 			gotsmtg = *ret;
@@ -207,11 +209,8 @@ int DLGSM::PT_send_recv(struct pt *pt, char *ret, char *cmd, int tout) {
 int DLGSM::PT_send_recv_confirm(struct pt *pt, char *ret, char *cmd, char *conf, int tout) {
 	static uint32_t ts,startts;
 	static struct pt linerecv_pt;
-	static char cdown = 0;
 	PT_BEGIN(pt);
 	*ret = 0;
-	if (cdown == 0)
-		cdown = 5;
 	ts = millis();
 	GSM_send(cmd);
 	PT_WAIT_UNTIL(pt, _gsmserial.available() || (millis() - ts) > tout);
@@ -548,7 +547,7 @@ int DLGSM::PT_pwr_on(struct pt *pt) {
 		PT_WAIT_UNTIL(pt, (millis() - ts) > 3000);
                 
 		CONN_set_flag(CONN_PWR, 1);
-	        PT_WAIT_THREAD(pt, PT_recv(&child_pt, &ret, "Call Ready", 3000));
+	        PT_WAIT_THREAD(pt, PT_recv(&child_pt, &ret, "Call Ready", 30000));
         }
 	_gsmserial.flush();
 	PT_END(pt);
@@ -577,7 +576,7 @@ int DLGSM::PT_pwr_off(struct pt *pt, uint8_t force) {
                 CONN_set_flag(CONN_NETWORK, 0);
                 CONN_set_flag(CONN_SENDING, 0);
                 CONN_set_flag(CONN_CONNECTED, 0);
-                PT_WAIT_THREAD(pt, PT_recv(&child_pt, &ret, "DOWN", 3000));
+                PT_WAIT_THREAD(pt, PT_recv(&child_pt, &ret, "DOWN", 30000));
 	}
 	_gsmserial.flush();
 	PT_END(pt);

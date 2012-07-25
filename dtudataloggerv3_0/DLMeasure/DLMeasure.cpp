@@ -11,6 +11,7 @@ volatile double _maxs[NUM_IO] = { 0 };
 volatile uint32_t _cnt_vals[NUM_DIGITAL] = { 0 };
 volatile uint8_t _AOD[NUM_IO] = { IO_OFF };
 volatile uint32_t isr_cnt = 0;
+volatile char got_event = 0;
 
 ISR(DIGITAL_ISR_VECT) {
 	unsigned char portvals, i;
@@ -21,10 +22,12 @@ ISR(DIGITAL_ISR_VECT) {
 	for(i = 0; i < NUM_DIGITAL; i++) {
 		if (_AOD[DIGITAL_OFFSET+i] == IO_EVENT) { 
 			if (!MASK(previous_portvals, 7-i) && MASK(portvals, 7-i)) { // Rising edge
+				got_event = 1;
 				_vals[DIGITAL_OFFSET+i] = 1;
 				_std_dev[DIGITAL_OFFSET+i] = (uint32_t)millis();
 			} 
 			else if (MASK(previous_portvals, 7-i) && !MASK(portvals, 7-i)) { // Falling edge
+				got_event = 1;
 				_vals[DIGITAL_OFFSET+i] = 0;
 				_std_dev[DIGITAL_OFFSET+i] = (uint32_t)millis();
 			}
@@ -72,13 +75,10 @@ void DLMeasure::disable(){
 
 void DLMeasure::pwr_on() {
 	digitalWrite(EXT_PWR_PIN, HIGH);
-	delay(50);
-	//get_bandgap();
 }
 
 void DLMeasure::pwr_off() {
 	digitalWrite(EXT_PWR_PIN, LOW);
-	delay(50);
 }
 
 uint16_t DLMeasure::read(uint8_t pin){
@@ -182,8 +182,12 @@ uint8_t DLMeasure::get_pin(uint8_t pin) {
 void DLMeasure::time_log_line(char *line) {
 	char tmpbuff[13];
 	uint32_t n = 0;
-	strcpy(line, "T");
+	*line = '\0';
+	strcat(line, "T");
 	fmtUnsigned(now(), tmpbuff, 12);
+	strcat(line, tmpbuff);
+	strcat(line, " V");
+	fmtUnsigned(get_supply_voltage(), tmpbuff, 12);
 	strcat(line, tmpbuff);
 	for(uint8_t i=ANALOG_OFFSET;i<NUM_IO;i++) {
 		if (_AOD[i] != IO_OFF)
@@ -228,13 +232,15 @@ void DLMeasure::time_log_line(char *line) {
 }
 
 void DLMeasure::event_log_line(char *line) {
+	uint8_t i=0;
 	char tmpbuff[13];
-	strcpy(line, "E");
+	*line = '\0';
+	strcat(line, "E");
 	fmtUnsigned(now(), tmpbuff, 12);
 	//ltoa(now(), tmpbuff, 16);
 	strcat(line, tmpbuff);
 	strcat(line, " ");
-	for(uint8_t i=ANALOG_OFFSET;i<(ANALOG_OFFSET+NUM_ANALOG);i++) {
+	for(i=DIGITAL_OFFSET;i<NUM_IO;i++) {
 		if (_AOD[i] == IO_EVENT) {
 			if (i != 0)
 				strcat(line, " ");
@@ -261,4 +267,12 @@ float DLMeasure::get_voltage(uint8_t pin) {
 
 void DLMeasure::debug(uint8_t v) {
 	_DEBUG = v;
+}
+
+char DLMeasure::check_event() {
+	return got_event;
+}
+
+void DLMeasure::reset_event() {
+	got_event = 0;
 }

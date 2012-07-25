@@ -1,5 +1,6 @@
 # Configuring target etc
 TARGET=datalogger_skel
+#TARGET=bandgap_measure
 #TARGET=bandgap
 #TARGET=deepsleep
 MCU=atmega1284p

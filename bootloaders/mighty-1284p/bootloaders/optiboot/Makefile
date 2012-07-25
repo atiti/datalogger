@@ -49,7 +49,7 @@ ifeq ($(ENV), arduino)
 # For Arduino, we assume that we're connected to the optiboot directory
 # included with the arduino distribution, which means that the full set
 # of avr-tools are "right up there" in standard places.
-TOOLROOT = ../../../tools
+TOOLROOT = ../../../../tools
 GCCROOT = $(TOOLROOT)/avr/bin/
 AVRDUDE_CONF = -C$(TOOLROOT)/avr/etc/avrdude.conf
 
@@ -76,9 +76,9 @@ GCCROOT = $(TOOLROOT)/avr/bin/
 AVRDUDE_CONF = -C$(TOOLROOT)/avr/etc/avrdude.conf
 
 else
-GCCROOT = /usr/local/avr/bin/
+GCCROOT = /usr/bin/
 AVRDUDE_CONF =
-AVRDUDE_ROOT = /usr/local/bin/
+AVRDUDE_ROOT = /usr/bin/
 endif
 #
 # End of build environment code.
@@ -247,8 +247,8 @@ atmega1284: $(PROGRAM)_atmega1284p.lst
 atmega1284_isp: atmega1284
 atmega1284_isp: TARGET = atmega1284p
 atmega1284_isp: MCU_TARGET = atmega1284p
-# 1024 byte boot
-atmega1284_isp: HFUSE = DE
+# 2048 byte boot
+atmega1284_isp: HFUSE = DA
 # Low power xtal (16MHz) 16KCK/14CK+65ms
 atmega1284_isp: LFUSE = FF
 # 2.7V brownout

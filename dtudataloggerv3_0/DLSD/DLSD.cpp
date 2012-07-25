@@ -43,6 +43,8 @@ int8_t DLSD::init() {
 		_inited = -1;
 		return -1;
 	}
+	if (_DEBUG)
+		_card.ls(LS_DATE | LS_SIZE);
 	_inited = 1;
 	return 1;
 }
@@ -118,8 +120,12 @@ unsigned long DLSD::open(uint8_t n, uint8_t flags) {
 		if (n != 0)
 			pad_filename(_filename, _files_count[n]);
 		strcat_P(_filename, sd_filename_ext);		
+		if (_DEBUG) {
+			Serial.print("Opening ");
+			Serial.println(_filename);
+		}
 		ret = _files[n].open(_filename, flags);
-		if (!_files[n].isOpen())
+		if (!ret || !_files[n].isOpen())
 			return -1;
 		_files_open[n] = true;
 		fsize = _files[n].fileSize();
@@ -139,35 +145,35 @@ bool DLSD::close(uint8_t n) {
 }
 
 bool DLSD::write(uint8_t n, char *ptr) {
-	_files[n].writeError = false;
+	_files[n].clearWriteError();
 	_files[n].print(ptr);
 	_files[n].sync();
 	return _files[n].writeError;
 }
 		
 bool DLSD::write(uint8_t n, float a) {
-	_files[n].writeError = false;
+	_files[n].clearWriteError();
 	_files[n].print(a);
 	_files[n].sync();
 	return _files[n].writeError;
 }
 
 bool DLSD::write(uint8_t n, unsigned short a) {
-	_files[n].writeError = false;
+        _files[n].clearWriteError();
 	_files[n].print(a);
 	_files[n].sync();
 	return _files[n].writeError;
 }
 
 bool DLSD::write(uint8_t n, int a) {
-	_files[n].writeError = false;
+        _files[n].clearWriteError();
 	_files[n].print(a);
 	_files[n].sync();
 	return _files[n].writeError;
 }
 
 bool DLSD::write(uint8_t n, unsigned long a) {
-	_files[n].writeError = false;
+        _files[n].clearWriteError();	
 	_files[n].print(a);
 	_files[n].sync();
 	return _files[n].writeError;

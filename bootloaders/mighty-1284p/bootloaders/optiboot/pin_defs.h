@@ -49,7 +49,7 @@
 #define LED_DDR     DDRB
 #define LED_PORT    PORTB
 #define LED_PIN     PINB
-#define LED         PINB1
+#define LED         PINB0
 
 /* Ports for soft UART */
 #ifdef SOFT_UART

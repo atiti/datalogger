@@ -74,7 +74,8 @@ class DLMeasure
 		float get_voltage(uint8_t pin);
 		void time_log_line(char *line);
 		void event_log_line(char *line);
-		int get_bandgap();
+		char check_event();
+		void reset_event();
 	private:
 		uint8_t _en, _inp;
 		bool _pullup;

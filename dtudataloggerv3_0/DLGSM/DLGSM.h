@@ -15,7 +15,7 @@
 
 #define WATCHDOG 1
 
-#define GSM_PWR 22
+#define GSM_PWR 3
 
 //#define GSM_BAUD 9600
 #define GSM_BAUD 57600
