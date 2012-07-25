@@ -1,0 +1,1 @@
+sudo /home/attila/Documents/arduino-1.0.1/hardware/tools/avrdude -C /home/attila/Documents/arduino-1.0.1/hardware/tools/avrdude.conf -F -c usbasp -p m1284p -e -u -U lock:w:0x3f:m -U efuse:w:0xFD:m -U hfuse:w:0xDE:m -U lfuse:w:0xFF:m -U flash:w:optiboot_atmega1284p.hex -U lock:w:0x2f:m
