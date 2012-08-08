@@ -48,7 +48,7 @@ DHT22 myDHT22(DHT22_PIN);
 // Define a serial port as console (can be remapped to different hardware serial
 // Or software serial
 #define _cons_serial Serial
-#define _cons_baud 57600
+#define _cons_baud 19200
 
 // External serial port configuration
 #define EXT_SER_RX 14 
@@ -130,8 +130,15 @@ float curr_humidity = 0.0f;
 int curr_voltage = 0;
 long total_voltage = 0;
 uint32_t main_iter_cnt = 0;
+uint32_t measure_cnt = 0;
+
+void reboot() {
+	cfg.wdt_event();	
+	reboot_now();
+}
 
 void sys_log_message(char *msg) {
+	static int sd_error = 0;
 	long filesize;
 	bool write_error;
 	Serial.print(msg);
@@ -149,7 +156,12 @@ void sys_log_message(char *msg) {
                 	write_error = sd.write(SYSLOG, sys_buff);
                         if (write_error) {
                         	Serial.println("Shit, an SD write error");
-                        }
+                        	sd_error++;
+			} else {
+				sd_error = 0;
+			}
+			if (sd_error == 10) // Wow the SD card kinda sucks
+				reboot();
 		}
 	}
 }
@@ -167,6 +179,7 @@ ISR(TIMER1_COMPA_vect) {
 
 void setup() {
 	int ret = 0;
+	int cdown = 0;
 	bool led = false;
 	set_bandgap(1080);
 	ext_wdt_reset();
@@ -181,12 +194,15 @@ void setup() {
 	TIMSK1 |= (1 << OCIE1A);
 	interrupts();
 */
-	delay(200); // Give us some time to start up
 	pinMode(STATUS_LED_PIN, OUTPUT); // Status LED
 	pinMode(WATCHDOG_PIN, OUTPUT);
 	digitalWrite(STATUS_LED_PIN, HIGH);
 	digitalWrite(WATCHDOG_PIN, HIGH);
 	_cons_serial.begin(_cons_baud);
+	for(ret = 0;ret < 100;ret++) {
+		_cons_serial.print("a");
+	}
+
 	_cons_serial.println("Setup");
 
 	for(ret=0;ret<NUM_THREADS;ret++) {
@@ -200,6 +216,7 @@ void setup() {
 	_cons_serial.println(memory_test());
         ext_wdt_reset();
 
+	wdt_enable(WDTO_8S); 
 	setSyncProvider(RTC.get); // Setup time provider to RTC
 	if(timeStatus()!= timeSet) {
 		get_from_flash_P(PSTR("RTC fail!"), log_buff);
@@ -207,9 +224,11 @@ void setup() {
 		get_from_flash_P(PSTR("RTC ok!"), log_buff);
 	}
 	_cons_serial.println(log_buff);
-        ext_wdt_reset();
+        setTime(RTC.get());
+	ext_wdt_reset();
 	dl_start_time = now();
-
+	wdt_reset();
+	wdt_disable();
 
   	// Initialize GSM
   	gsm.init(gsm_buff, GSM_BUFF_SIZE, 5);
@@ -220,19 +239,24 @@ void setup() {
         ext_wdt_reset();
 
 	// Initialize SD
-	sd.debug(0);
+	//sd.debug(1);
+	cdown = 0;
 	while (ret != 1) { // No debugging
         	ret = sd.init();
-        	if (ret == 1)
+        	if (ret == 1) {
                 	get_from_flash_P(PSTR("SD ok!"), log_buff);
-        	else
-                	get_from_flash_P(PSTR("SD fail!"), log_buff);
-       		_cons_serial.println(log_buff);
-        	_cons_serial.println(ret,DEC);
+			_cons_serial.println(log_buff);
+		} else {
+			sd.error();
+		}
 		led = !led;
 		digitalWrite(STATUS_LED_PIN, led);
 	        ext_wdt_reset();
         	delay(200);
+		cdown++;
+		if (cdown == 10)
+			reboot();
+
 	}
         ext_wdt_reset();
 
@@ -244,8 +268,6 @@ void setup() {
 	cfg.init(&sd, &measure, log_buff, LOG_BUFF_SIZE);
 
 	cfg.load();
-	cfg.load_files_count(0);
-	cfg.load_files_count(1);
 	config = cfg.get_config();
 	if (config->http_status_time == 0)
 		config->http_status_time = 1*60*1000; // 1 min
@@ -263,10 +285,15 @@ void setup() {
 #endif
         ext_wdt_reset();
 
+	digitalWrite(8, HIGH);
+	digitalWrite(10, HIGH);
+
 	// Finally enable our internal watchdog
 	wdt_enable(WDTO_8S); 
         ext_wdt_reset();
 	dl_start_time = now();
+	_cons_serial.print("Time: ");
+	digital_clock_display();
 }
 
 /* System thread
@@ -294,10 +321,22 @@ static int protothread_sys(struct pt *pt, int interval) {
 				_cons_serial.println("HTTP upload requested");
 				requested_state = gsm_upload_data;
 			}
-			if (t == 's') {
+			else if (t == 's') {
 				_cons_serial.println("HTTP status requested");
 				requested_state = gsm_send_http_status;
-
+			}
+			else if (t == 'c') {
+/*				_cons_serial.println("Resetting EEPROM");
+				sd.reset_files_count();
+				sd.reset_saved_count();
+				cfg.save_files_count(0);
+				cfg.save_files_count(1);
+				reboot();
+*/
+			}
+			else if (t == 'r') {
+				_cons_serial.println("Rebooting");
+				reboot();
 			}
 		} else {
 			digitalWrite(STATUS_LED_PIN, LOW);
@@ -326,7 +365,7 @@ static int protothread_sys(struct pt *pt, int interval) {
 	
 			t = gsm.CONN_get_flag(0xff);
 
-			fmtUnsigned(now()-dl_start_time, smallbuff, 11);
+			fmtUnsigned(now(), smallbuff, 11);
 			strcpy(sys_buff, smallbuff);
 			strcat(sys_buff, ": ");
 			fmtUnsigned(main_iter_cnt, smallbuff, 11);
@@ -345,6 +384,9 @@ static int protothread_sys(struct pt *pt, int interval) {
 			strcat(sys_buff, smallbuff);
 			strcat(sys_buff, "ms Net: ");
 			fmtUnsigned(t, smallbuff, 11);
+			strcat(sys_buff, smallbuff);
+			strcat(sys_buff, " M: ");
+			fmtUnsigned(measure_cnt, smallbuff, 11);
 			strcat(sys_buff, smallbuff);
 			strcat(sys_buff, " T: ");
 			dtostrf(curr_temperature, 4, 3, smallbuff);
@@ -385,15 +427,15 @@ static int protothread_sys(struct pt *pt, int interval) {
 */
 static int protothread_measure(struct pt *pt, int interval) {
 	static unsigned long timestamp = 0;
-	int32_t i = 0, filesize = 0;
+	int32_t filesize = 0;
 	short val = 0;
 
 	PT_BEGIN(pt);
 	while (1) {
 		PT_WAIT_UNTIL(pt, millis() - timestamp >= interval);
 		timestamp = millis();
-		i = measure.read_all(1);
-		if (i >= 50) {
+		measure_cnt = measure.read_all(1);
+		if (measure_cnt >= 30) {
 			measure.get_all();
 			measure.time_log_line(log_buff);   
 			measure.reset();
@@ -477,7 +519,9 @@ static int protothread_comm(struct pt *pt, int interval) {
 
 		} else if (gsm_curr_state == gsm_send_http_status) {
 			last_status = millis();
-                        strcpy_P(tmp_buff, PSTR("http://dl2.zsuatt.com/status.php"));
+			*tmp_buff = '\0';
+			strcat(tmp_buff, config->HTTP_URL);
+                        strcat_P(tmp_buff, PSTR("status.php"));
                         strcat_P(tmp_buff, PSTR("?id="));
                         fmtUnsigned(config->id, smallbuff, 10);
                         strcat(tmp_buff, smallbuff);
@@ -512,8 +556,10 @@ static int protothread_comm(struct pt *pt, int interval) {
                         
 			PT_WAIT_THREAD(pt, http.PT_GET(&comm_child_pt, &ret, tmp_buff));
                         get_from_flash_P(PSTR("R: "), tmp_buff);
-                        Serial.print(tmp_buff);
-                        Serial.println(v, DEC);
+                        _cons_serial.print(tmp_buff);
+                        _cons_serial.print(v, DEC);
+			_cons_serial.print(" HTTP: ");
+			_cons_serial.println(http.get_err_code(), DEC);
 
 			// Syncronise RTC to server time
 			if (RTC.get() < (now()-360) || RTC.get() > (now()+360)) {
@@ -592,13 +638,18 @@ static int protothread_serial(struct pt *pt, int interval) {
 
 static int protothread_event(struct pt *pt, int interval) {
 	static struct pt child_pt;
-	static long timestamp;
+	static long timestamp, lastevent;
 	static long filesize;
+	static bool write_error = false;
 	PT_BEGIN(pt);
 	while (1) {
 		PT_WAIT_UNTIL(pt, measure.check_event() == 1 || (millis() - timestamp) > 1000);
 		timestamp = millis();
-		if (measure.check_event()) {
+		if ((millis() - lastevent) < 500) {
+			measure.reset_event();
+		}
+		else if (measure.check_event()) {
+			lastevent = millis();
 			measure.event_log_line(log_buff);
 			measure.reset_event();
 		        if (sd.is_available() < 0)
@@ -611,8 +662,12 @@ static int protothread_event(struct pt *pt, int interval) {
 					cfg.save_files_count(0);
 					filesize = sd.open(DATALOG, O_RDWR | O_CREAT | O_APPEND);
 				}
-				if (filesize != -1)
-					sd.write(DATALOG, log_buff);
+				if (filesize != -1) {
+					write_error = sd.write(DATALOG, log_buff);
+					if (write_error) {
+						LOG("Failed to write event");
+					}
+				}
 			}
 			_cons_serial.print(log_buff);
 		}
@@ -627,7 +682,11 @@ static int protothread_wdt(struct pt *pt, int interval) {
 	while (1) {
 		PT_WAIT_UNTIL(pt, (millis()-timestamp) >= interval);
 		timestamp = millis();
-		ext_wdt_reset();
+	        digitalWrite(WATCHDOG_PIN, LOW);
+		PT_WAIT_UNTIL(pt, (millis() - timestamp) >= 40);
+		digitalWrite(WATCHDOG_PIN, HIGH);
+
+		//ext_wdt_reset();
 	}
 	PT_END(pt);
 }
@@ -641,7 +700,7 @@ void loop() {
 	protothread_sys(&threads[THREAD_SYS].pt, 100);
 	SET_IF_MAX(threads[THREAD_SYS].timing, millis()-ts);
 	ts = millis();
-	protothread_measure(&threads[THREAD_MEAS].pt, 200);
+	protothread_measure(&threads[THREAD_MEAS].pt, 500);
 	SET_IF_MAX(threads[THREAD_MEAS].timing, millis()-ts);
 	ts = millis();
 	protothread_comm(&threads[THREAD_COMM].pt, 500);	

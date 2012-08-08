@@ -20,19 +20,22 @@ ISR(DIGITAL_ISR_VECT) {
 	changed = portvals ^ previous_portvals;
 
 	for(i = 0; i < NUM_DIGITAL; i++) {
-		if (_AOD[DIGITAL_OFFSET+i] == IO_EVENT) { 
+		if (_AOD[DIGITAL_OFFSET+i] == IO_COUNTER && MASK(changed, 7-i) && MASK(portvals, 7-i)) {
+                                _cnt_vals[i]++;
+                }
+		else if (_AOD[DIGITAL_OFFSET+i] == IO_EVENT) { 
 			if (!MASK(previous_portvals, 7-i) && MASK(portvals, 7-i)) { // Rising edge
 				got_event = 1;
 				_vals[DIGITAL_OFFSET+i] = 1;
-				_std_dev[DIGITAL_OFFSET+i] = (uint32_t)millis();
+				_std_dev[DIGITAL_OFFSET+i] = ((uint32_t)millis() - (uint32_t)_maxs[DIGITAL_OFFSET+i]);
+				_maxs[DIGITAL_OFFSET+i] = (uint32_t)millis();
 			} 
 			else if (MASK(previous_portvals, 7-i) && !MASK(portvals, 7-i)) { // Falling edge
 				got_event = 1;
 				_vals[DIGITAL_OFFSET+i] = 0;
-				_std_dev[DIGITAL_OFFSET+i] = (uint32_t)millis();
+			 	_std_dev[DIGITAL_OFFSET+i] = ((uint32_t)millis() - (uint32_t)_maxs[DIGITAL_OFFSET+i]);
+				_maxs[DIGITAL_OFFSET+i] = (uint32_t)millis();
 			}
-		} else if (_AOD[DIGITAL_OFFSET+i] == IO_COUNTER && MASK(changed, 7-i) && MASK(portvals, 7-i)) {
-				_cnt_vals[i]++;
 		}
 	}
 	previous_portvals = portvals;
@@ -103,7 +106,7 @@ uint16_t DLMeasure::read(uint8_t pin){
 	return ret;
 }
 
-uint8_t DLMeasure::read_all(uint8_t itr){
+uint32_t DLMeasure::read_all(uint8_t itr){
 	uint16_t v = 0;
 	double tmpv = 0.0;
 	if (_smeasure == 0)
@@ -123,7 +126,7 @@ uint8_t DLMeasure::read_all(uint8_t itr){
 	return _sum_cnt;		 
 }
 
-uint8_t DLMeasure::read_all() {
+uint32_t DLMeasure::read_all() {
 	return read_all(0);
 }
 
@@ -166,9 +169,8 @@ void DLMeasure::set_int_fun(INT_callback fun) {
 }
 
 void DLMeasure::set_pin(uint8_t pin, uint8_t doa){
-	if ((pin == 0 || pin == 1) && doa == IO_EVENT && _int_ptr) {
-//		attachInterrupt(pin, (INT_callback)_int_ptr, CHANGE);
-	}
+	if (doa >= MAX_IO_TYPES) return;
+
 	if (doa != IO_OFF) {
 		digitalWrite(num2pin_mapping[pin], LOW); // Turn off interal pullup
 	}

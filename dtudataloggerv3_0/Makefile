@@ -3,6 +3,7 @@ TARGET=datalogger_skel
 #TARGET=bandgap_measure
 #TARGET=bandgap
 #TARGET=deepsleep
+DL_BAUD=19200
 MCU=atmega1284p
 F_CPU=16000000
 FORMAT=ihex
@@ -14,13 +15,13 @@ ARDUINO_VARIANT=$(ARDUINO_DIR)/hardware/mighty-1284p/variants/standard/
 AVR_BIN=/usr/bin/ # avr-gcc bin
 DEBUG= # Debugging (stabs)
 OPT=s  # Optimization
-#AVRDUDE_BIN=$(ARDUINO_DIR)/hardware/tools/avrdude 
-AVRDUDE_BIN=/usr/bin/avrdude
+AVRDUDE_BIN=$(ARDUINO_DIR)/hardware/tools/avrdude 
+#AVRDUDE_BIN=/usr/local/bin/avrdude
 AVRDUDE_PROGRAMMER=arduino #stk500v1
-AVRDUDE_PORT=/dev/ttyUSB0
+AVRDUDE_PORT=/dev/ttyUSB3
 #AVRDUDE_PORT=/dev/ttyACM3
-#AVRDUDE_CONF=$(ARDUINO_DIR)/hardware/tools/avrdude.conf
-AVRDUDE_CONF=/etc/avrdude.conf
+AVRDUDE_CONF=$(ARDUINO_DIR)/hardware/tools/avrdude.conf
+#AVRDUDE_CONF=/usr/local/etc/avrdude.conf
 
 PROJECT_SRC=datalogger_skel.cpp
 
@@ -82,7 +83,7 @@ SRC=$(ARDUINO_SRC)
 
 # Programming with avrdude
 # /home/atiti/Documents/arduino-1.0/hardware/tools/avrdude -C/home/atiti/Documents/arduino-1.0/hardware/tools/avrdude.conf -v -v -v -v -patmega1284p -carduino -P/dev/ttyUSB0 -b115200 -D -Uflash:w:/tmp/build5759509888866614491.tmp/simpletest.cpp.hex:i
-AVRDUDE_WRITE_FLASH=-D -U flash:w:$(TARGET).hex:i
+AVRDUDE_WRITE_FLASH=-e -U flash:w:$(TARGET).hex:i
 AVRDUDE_FLAGS=-C $(AVRDUDE_CONF) -v -v -v -p $(MCU) -c $(AVRDUDE_PROGRAMMER) -P $(AVRDUDE_PORT) -b $(UPLOAD_RATE)
 
 # Program settings
@@ -121,6 +122,7 @@ lss: $(TARGET).lss
 sym: $(TARGET).sym
 
 upload: $(TARGET).hex $(TARGET).eep
+	#python rts_toggler.py
 	$(AVRDUDE_BIN) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH)
 
 	# Display size of file.
@@ -202,7 +204,7 @@ clean:
 	$(OBJ) $(LST) $(SRC:.c=.s) $(SRC:.c=.d) $(CXXSRC:.cpp=.s) $(CXXSRC:.cpp=.d)
 
 monitor:
-	screen -ah 5000 $(AVRDUDE_PORT) 57600
+	screen -ah 5000 $(AVRDUDE_PORT) $(DL_BAUD)
 
 .PHONY:	all build elf hex eep lss sym program coff extcoff clean depend
 

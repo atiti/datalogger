@@ -15,12 +15,15 @@
 #define DATALOG_READONLY 4
 
 #define NUM_FILES 5
+#define FILES_CNT_START 1
+#define FILES_CNT_END 4
 
 class DLSD
 {
 	public:
 		DLSD(char fullspeed, uint8_t CS_pin);
 		void debug(int v);
+		void error();
 		int8_t init();
 		uint8_t get_num_files();
 		uint16_t get_files_count(uint8_t fid);
@@ -29,6 +32,7 @@ class DLSD
 		uint16_t get_saved_count(uint8_t fid);
 		uint8_t set_saved_count(uint8_t fid, uint16_t count);
 		void reset_saved_count();
+		void seek_forward_files_count();
 		int8_t is_available();
 		void pad_filename(char *filename, uint16_t c);
 		bool increment_file(uint8_t n);
@@ -44,6 +48,8 @@ class DLSD
 		void rewind(uint8_t n);
 		bool seek(uint8_t n, uint32_t pos);
 		bool seekend(uint8_t n);
+		bool exists(char *fname);
+		uint8_t copy(char *src, char *dst);
 	private:
 		char _fullspeed;
 		uint8_t _CS;

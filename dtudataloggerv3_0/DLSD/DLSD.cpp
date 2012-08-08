@@ -49,6 +49,10 @@ int8_t DLSD::init() {
 	return 1;
 }
 
+void DLSD::error() {
+	_card.errorPrint();
+}
+
 uint8_t DLSD::get_num_files() {
 	return NUM_FILES;
 }
@@ -81,6 +85,29 @@ void DLSD::reset_saved_count() {
 		_saved_count[i] = 0;
 }
 
+void DLSD::seek_forward_files_count() {
+	int n, cnt;
+	bool exists = true;
+	for(n=FILES_CNT_START;n<=FILES_CNT_END;n++) {
+		exists = true;
+		cnt = _files_count[n];
+		do {
+			*_filename = '\0';
+			get_from_flash(&(sd_filename_table[n]), _filename);
+			if (n != 0)
+				pad_filename(_filename, cnt);
+			strcat_P(_filename, sd_filename_ext);
+			exists = _card.exists(_filename);
+			cnt++;
+		} while (exists);
+		Serial.print("Setting #");
+		Serial.print(n, DEC);
+		Serial.print(" to ");
+		Serial.println(cnt, DEC);
+		set_files_count(n, cnt);
+	}
+}
+
 int8_t DLSD::is_available() {
 	return _inited;
 }
@@ -109,13 +136,8 @@ unsigned long DLSD::open(uint8_t n, uint8_t flags) {
 	uint8_t ret;
 	unsigned long fsize = 0;
 	digitalWrite(_CS, LOW);
-/*	for(int j=0;j<4;j++) {
-		if (_files_open[j] == true && j != n) {
-			close(n);
-		}
-	}
-*/
 	if (_files_open[n] == false) {
+		*_filename = '\0';
 		get_from_flash(&(sd_filename_table[n]), _filename);
 		if (n != 0)
 			pad_filename(_filename, _files_count[n]);
@@ -215,4 +237,34 @@ bool DLSD::seekend(uint8_t n) {
 	_files[n].seekEnd();
 }
 
+bool DLSD::exists(char *fname) {
+	return _card.exists(fname);	
+}
 
+uint8_t DLSD::copy(char *src, char *dst) {
+  char buf[512];
+  SdFile file1, file2;
+  
+  if (!file1.open(src, O_READ)) {
+    error();
+  }
+
+  if (!file2.open(dst, O_WRITE | O_CREAT | O_TRUNC)) {
+    error();
+  }
+
+  // copy file1 to file2
+  file1.rewind();
+
+  while (1) {
+    int n = file1.read(buf, sizeof(buf));
+    if (n < 0) error();
+    if (n == 0) break;
+    if (file2.write(buf, n) != n) error();
+  }
+  file1.sync();
+  file2.sync();
+  file1.close();
+  file2.close();
+  return 1;
+}

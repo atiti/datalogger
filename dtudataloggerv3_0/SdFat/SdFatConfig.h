@@ -32,7 +32,7 @@
  *
  * Set USE_SD_CRC to 2 to used a larger faster table driven CRC-CCITT function.
  */
-#define USE_SD_CRC 0
+#define USE_SD_CRC 1
 //------------------------------------------------------------------------------
 /**
  * To use multiple SD cards set USE_MULTIPLE_CARDS nonzero.
@@ -90,7 +90,7 @@
  * SPI init rate for SD initialization commands. Must be 5 (F_CPU/64)
  * or 6 (F_CPU/128).
  */
-#define SPI_SD_INIT_RATE 5
+#define SPI_SD_INIT_RATE 6
 //------------------------------------------------------------------------------
 /**
  * Set the SS pin high for hardware SPI.  If SS is chip select for another SPI

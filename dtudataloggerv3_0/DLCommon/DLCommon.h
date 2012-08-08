@@ -35,6 +35,8 @@ void set_supply_voltage(long v);
 long get_supply_voltage();
 void set_bandgap(long iref);
 int get_bandgap();
-void reboot();
+void reboot_now();
+void digital_clock_display();
+void print_digits(int d);
 #endif
 

@@ -17,6 +17,10 @@ typedef struct {
 	uint16_t eeprom_events;
 	uint16_t files_count[NUM_FILES];
 	uint16_t saved_count[NUM_FILES];
+	uint32_t http_status_time;
+	uint32_t http_upload_time;
+	uint32_t measure_length;
+	uint8_t AOD[NUM_IO];
 	char APN[20];
 	char HTTP_URL[50];
 	unsigned long checksum;
@@ -39,7 +43,7 @@ class DLConfig
 	public:
 		DLConfig();
 		void init(DLSD *sd, DLMeasure *measure, char *buff, int len);
-		int log_process_callback(char *line, int len);
+		int config_process_callback(char *line, int len);
 		uint8_t load();
 		uint8_t load_config_EEPROM(EEPROM_config_t *epc); 
 		uint8_t save_config_EEPROM(EEPROM_config_t *epc);
@@ -54,6 +58,7 @@ class DLConfig
 		uint8_t load_APN(char *dst, int len);
 		uint8_t load_URL(char *dst, int len);
 		Config* get_config();
+		void wdt_event();
 	private:
 		EEPROM_config_t _epc;
 		Config *_config;

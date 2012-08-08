@@ -49,7 +49,7 @@ void DLConfig::init(DLSD *sd, DLMeasure *measure, char *buff, int len) {
 	_config->eeprom_events = &_epc.eeprom_events;
 }
 
-int DLConfig::log_process_callback(char *line, int len) {
+int DLConfig::config_process_callback(char *line, int len) {
         char *param, *ptr;
 	uint16_t tmpvar;
         //. Here we extract the name and value combination by finding the equal sign
@@ -62,16 +62,21 @@ int DLConfig::log_process_callback(char *line, int len) {
                 ptr = line+10;
                 if (strncmp_P(line, PSTR("PORT_MOD"), 8) == 0) {
 			tmpvar = atoi(ptr);
+			Serial.print("Port ");
 			Serial.print(tmpvar);
 			Serial.print(": ");
 			Serial.println(param);
 			if (param[1] == 'A') { // Analog
+				_epc.AOD[tmpvar] = IO_ANALOG;
 				_measure->set_pin(tmpvar, IO_ANALOG); 
 			} else if (param[1] == 'C') { // Counter
+				_epc.AOD[tmpvar] = IO_COUNTER;
 				_measure->set_pin(tmpvar, IO_COUNTER);
 			} else if (param[1] == 'D') { // Digital
+				_epc.AOD[tmpvar] = IO_DIGITAL;
 				_measure->set_pin(tmpvar, IO_DIGITAL);
 			} else if (param[1] == 'E') { // Event
+				_epc.AOD[tmpvar] = IO_EVENT;
 				_measure->set_pin(tmpvar, IO_EVENT);
 			}
                 }
@@ -131,22 +136,57 @@ int DLConfig::log_process_callback(char *line, int len) {
 uint8_t DLConfig::load() {
 	int32_t filesize = 0;
 	int i;
+	// Load configuration from the EEPROM
 	load_config_EEPROM(&_epc);
 	print_config_EEPROM(&_epc);
+
+	// Set ports up from EEPROM first
+	for(i=0;i<NUM_IO;i++) {
+		Serial.print("Port ");
+		Serial.print(i, DEC);
+		Serial.print(": ");
+		Serial.println(_epc.AOD[i], DEC);
+		_measure->set_pin(i, _epc.AOD[i]);
+	}
+
+	load_files_count(0);
+	load_files_count(1);	
+
+	if (_sd->is_available() < 1) {
+		_sd->init();
+	}
+
+	// Load config file from the sd card
 	if (_sd->is_available() > 0) {
+	        _sd->seek_forward_files_count();
+
 		filesize = _sd->open(CONFIG, O_READ);
-		if (filesize == -1)
-			return 0;
+		if (filesize == -1 || filesize == 0) { // An Ooops event... Our config file is fucked for some reason
+			_sd->close(CONFIG);
+			Serial.println("No config!");
+			if (_sd->exists("CONFIG.BAK")) {
+				Serial.println("Using the backup file");		
+				if (_sd->copy("CONFIG.BAK", "CONFIG.DAT")) {
+					Serial.println("Restored config");
+				} else {
+					Serial.println("Failed to restore config");
+				}
+			} else {
+				Serial.println("No backup either.");
+				return 0;
+			}
+		}
 		_sd->rewind(CONFIG);
 		int rv = 0;
 		do {
 			rv = _sd->read(CONFIG, _buff, _buff_size, '\n');
 			if (_buff[0] != '#' && _buff[0] != 0 && _buff[0] != '\n') {
-				log_process_callback(_buff, _buff_size);
+				config_process_callback(_buff, _buff_size);
 			}
 		} while (rv >= 0);
 		_sd->close(CONFIG);
 
+		// Reset counters if 0xff = freshly programmed eeprom
 		if (_epc.wdt_events == _UINT16_MAX_)
 			_epc.wdt_events = 0;
 		if (_epc.eeprom_events == _UINT16_MAX_)
@@ -161,10 +201,8 @@ uint8_t DLConfig::load() {
 		//sync_config_EEPROM(&_epc);
 		save_config_EEPROM(&_epc);
 		return 1;
-	} else {
-		_sd->init();
-		return 0;
-	}
+	} 
+	return 0;
 }
 
 uint8_t DLConfig::load_config_EEPROM(EEPROM_config_t *epc) {
@@ -309,7 +347,8 @@ uint8_t DLConfig::save_files_count(uint8_t saved) {
 			v = _sd->get_saved_count(i);
 			_epc.saved_count[i] = v;
 		}
-		Serial.print("SFC: ");
+		Serial.print(saved, DEC);
+		Serial.print(" SFC: ");
 		Serial.println(v);
 	}
 	sync_config_EEPROM(&_epc);
@@ -329,4 +368,7 @@ uint8_t DLConfig::load_URL(char *dst, int len) {
 	return 1;
 }
 
-
+void DLConfig::wdt_event() {
+	_epc.wdt_events++;
+	sync_config_EEPROM(&_epc);
+}

@@ -10,12 +10,13 @@ PROGRAM    = ATmegaBOOT_1284P
 AVR_FREQ   = 16000000L
 
 MCU_TARGET = atmega1284p
-LDSECTION  = --section-start=.text=0x1F800
+#LDSECTION  = --section-start=.text=0x1F800
+LDSECTION = -Wl,--section-start=.text=0x1f800 #-Wl,--section-start=.version=0x1fffe
 
 OBJ        = $(PROGRAM).o
 OPTIMIZE   = -Os
 
-DEFS       = -DWATCHDOG_MODS -DBAUD_RATE=57600
+DEFS       = -DWATCHDOG_MODS -DBAUD_RATE=19200
 LIBS       = 
 
 CC         = avr-gcc
@@ -24,7 +25,7 @@ CC         = avr-gcc
 # Override is only needed by avr-lib build system.
 
 override CFLAGS        = -Wall $(OPTIMIZE) -mmcu=$(MCU_TARGET) -DF_CPU=$(AVR_FREQ) $(DEFS)
-override LDFLAGS       = -Wl,$(LDSECTION)
+override LDFLAGS       = $(LDSECTION)
 #override LDFLAGS       = -Wl,-Map,$(PROGRAM).map,$(LDSECTION)
 
 OBJCOPY        = avr-objcopy

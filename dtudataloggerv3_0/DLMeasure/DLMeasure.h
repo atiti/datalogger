@@ -24,6 +24,7 @@
 #define VREF 5.0
 #define EXT_PWR_PIN 15 
 
+#define MAX_IO_TYPES 5
 /* IO port types */
 #define IO_OFF 0
 #define IO_ANALOG 1
@@ -64,8 +65,8 @@ class DLMeasure
 		void pwr_off();
 		void set_measure_time(uint16_t measure_time);
 		uint16_t read(uint8_t pin);
-		uint8_t read_all(uint8_t intr);
-		uint8_t read_all();
+		uint32_t read_all(uint8_t intr);
+		uint32_t read_all();
 		void reset();
 		uint8_t get_all();
 		void set_int_fun(INT_callback fun);
@@ -79,7 +80,7 @@ class DLMeasure
 	private:
 		uint8_t _en, _inp;
 		bool _pullup;
-		uint16_t _sum_cnt; // Number of measurements
+		uint32_t _sum_cnt; // Number of measurements
 		uint16_t _measure_time; // Measurement length
 		time_t _smeasure; // Measurement start time
 		volatile uint16_t _dvals;

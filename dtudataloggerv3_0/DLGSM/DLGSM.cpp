@@ -28,7 +28,8 @@ PROGMEM const char *gsm_init_string_table[] = { gsm_init_string_0, gsm_init_stri
 Pchar gprs_init_string_0[] = "AT+CGREG?\r\n";
 Pchar gprs_init_string_1[] = "AT+CIPSHUT\r\n"; //+CGATT=1\r\n"; //+CIPCSGP=1,\"internet.bibob.dk\"\r\n";
 //Pchar gprs_init_string_2[] = "AT+CIPMODE=0\r\n"; //AT+CDNSCFG=\"8.8.8.8\",\"8.8.8.4\"\r\n";
-Pchar gprs_init_string_2[] = "AT+CDNSCFG=\"8.8.8.8\",\"8.8.8.4\"\r\n";
+//Pchar gprs_init_string_2[] = "AT+CDNSCFG=\"8.8.8.8\",\"8.8.8.4\"\r\n";
+Pchar gprs_init_string_2[] = "AT+COPS?\r\n";
 Pchar gprs_init_string_3[] = "AT+CGATT=1\r\n";
 Pchar gprs_init_string_4[] = "AT+CGDCONT=1,\"IP\",\"internet\"\r\n";
 //Pchar gprs_init_string_5[] = "AT+CIPCSGP=1,\"internet.bibob.dk\"\r\n";
@@ -47,7 +48,7 @@ prog_char gsm_string_0[] PROGMEM = "AT+CREG?\r\n";
 prog_char gsm_string_1[] PROGMEM = "AT+CIPSTART=\"TCP\",\"";
 prog_char gsm_string_2[] PROGMEM = "AT+CIPSTART=\"UDP\",\"";
 prog_char gsm_string_3[] PROGMEM = "AT+CIPSEND\r\n";
-prog_char gsm_string_4[] PROGMEM = "AT+CIPCLOSE\r\n";
+prog_char gsm_string_4[] PROGMEM = "AT+CIPCLOSE=1\r\n"; //"AT+CIPCLOSE\r\n";
 prog_char gsm_string_5[] PROGMEM = "AT+CIPSTATUS\r\n";
 prog_char gsm_string_6[] PROGMEM = "AT+CIPSEND?\r\n";
 PROGMEM const char *gsm_string_table[] = { gsm_string_0, gsm_string_1, gsm_string_2,
@@ -84,7 +85,7 @@ PROGMEM const char *gprs_state_table[] = { gprs_state_0, gprs_state_1, gprs_stat
                         Serial.print(v); \
                         } \
 
-#define DEBUG 1
+#define DEBUG 0
 
 #ifdef HARDWARE_SERIAL
 #define _gsmserial Serial1

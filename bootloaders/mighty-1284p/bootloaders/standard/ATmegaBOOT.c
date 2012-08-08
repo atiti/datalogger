@@ -92,7 +92,7 @@
 #define NUM_LED_FLASHES 3
 /* set the UART baud rate */
 /* 20060803: hacked by DojoCorp */
-//#define BAUD_RATE   115200
+//#define BAUD_RATE   57600
 #ifndef BAUD_RATE
 #define BAUD_RATE   19200
 #endif
@@ -416,6 +416,9 @@ int main(void)
   /* feature added to the Arduino Mega --DC: 080930 */
   DDRE &= ~_BV(PINE0);
   PORTE |= _BV(PINE0);
+#elif defined(__AVR_ATmega1284P__)
+  DDRD &= ~_BV(PIND0);
+  PORTD |= _BV(PIND0);
 #endif
   /* set LED pin as output */
   LED_DDR |= _BV(LED);

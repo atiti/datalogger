@@ -17,14 +17,16 @@ def process_serial():
 	while 1:
 		l = ser.readline()
 		if l:
-			l = string.split(l, "\t")
+			l = string.split(l, " ")
 			if len(l) > 1 and l[0][0] == "T":
 				ts = l[0][1:]
-				v = l[1].split(":")[1]
-				gy = int(v)
-				gt += 1
-				print l
-
+				try:
+					v = l[1].split(":")[1]
+					gy = int(v)
+					gt += 1
+					print l
+				except:
+					pass
 fig = plt.figure()
 ax = fig.add_subplot(2,2,1)
 bx = fig.add_subplot(2,2,2)
