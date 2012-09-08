@@ -19,7 +19,8 @@ typedef struct {
 	uint16_t saved_count[NUM_FILES];
 	uint32_t http_status_time;
 	uint32_t http_upload_time;
-	uint32_t measure_length;
+	uint32_t measure_time;
+	uint32_t sampling_rate;
 	uint8_t AOD[NUM_IO];
 	char APN[20];
 	char HTTP_URL[50];
@@ -31,7 +32,9 @@ typedef struct {
 	uint32_t http_status_time;
 	uint32_t http_upload_time;
 	uint32_t measure_time;
-	uint32_t measure_length;
+	uint32_t sampling_rate;
+	uint32_t num_samples;
+	uint16_t sampling_delay;
 	char *APN;
 	char *HTTP_URL;
 	uint16_t *wdt_events;
@@ -59,6 +62,8 @@ class DLConfig
 		uint8_t load_URL(char *dst, int len);
 		Config* get_config();
 		void wdt_event();
+		uint32_t get_wdt_events();
+		uint32_t get_eeprom_events();
 	private:
 		EEPROM_config_t _epc;
 		Config *_config;

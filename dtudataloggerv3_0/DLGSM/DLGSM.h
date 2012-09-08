@@ -45,16 +45,32 @@
 #define CONN_GPRS_NET 0x8
 #define CONN_PWR 0x10
 
-
 #define GSM_EVENT_STATUS_REQ 1
 #define GSM_EVENT_LIVE 2
+#define GSM_EVENT_REBOOT 3
+#define GSM_EVENT_GET_ALL_READINGS 4
+#define GSM_EVENT_GET_READING 5
+#define GSM_EVENT_SYSINFO 6
+#define GSM_EVENT_UPTIME 7
+#define GSM_EVENT_UPLOAD 8
+#define GSM_EVENT_UPLOAD_FILE 9
 
+
+typedef struct {
+	int index;
+	char got_message;
+	char number[50];
+	char message[160];
+} SMS_t;
 
 typedef struct {
 	uint8_t ip[4];
 	uint16_t port;
 	char flags;
 } Connection;
+
+/* Callbacks */
+int GSM_process_SMS_list(char *buff, int size);
 
 class DLGSM
 {
@@ -65,7 +81,7 @@ class DLGSM
 		void pwr_on();
 #ifdef USE_PT
 		int PT_recvline(struct pt *pt, char *ret, char *ptr, int len, int tout, char process);
-		int PT_recv(struct pt *pt, char *ret, char *conf, int tout);
+		int PT_recv(struct pt *pt, char *ret, char *conf, int tout, char process);
 		int PT_send_recv(struct pt *pt, char *ret, char *cmd, int tout);
 		int PT_send_recv_confirm(struct pt *pt, char *ret, char *cmd, char *conf, int tout);
 		int PT_GSM_init(struct pt *pt, char *ret);
@@ -75,6 +91,10 @@ class DLGSM
 		int PT_check_flag(struct pt *pt, char flag);
 		int PT_SMS_send(struct pt *pt, char *ret, char *nr, char *text, int len);
 		int PT_SMS_send_end(struct pt *pt);
+		int PT_SMS_delete(struct pt *pt, int num);
+		int PT_SMS_read(struct pt *pt, char *ret, int num);
+		int PT_SMS_check(struct pt *pt, char *ret);
+		int PT_SMS_process(pt*, char *ret, SMS_t*);
 		int PT_GPRS_connect(struct pt *pt, char *ret, char *server, short port, bool proto);
 		int PT_GPRS_send_start(struct pt *pt, char *ret);
 		int PT_GPRS_send_end(struct pt *pt, char *ret);
@@ -128,6 +148,7 @@ class DLGSM
 		char* GSM_get_ci();
 		int8_t GSM_event_handler();
 		int8_t available();
+		SMS_t* get_SMS();
 	private:
 		FUN_callback _gsm_callback;
 		bool _gsminit;
@@ -143,7 +164,7 @@ class DLGSM
 		uint8_t _DEBUG;
 		uint32_t _tout_cnt;
 		uint32_t _error_cnt;
-
+		uint32_t _sms_count;
 };
 
 #endif

@@ -22,6 +22,9 @@
 #include <DLHTTP.h>
 #include <DLFileUpload.h>
 #include <DHT22.h>
+#include <DS1307RTC.h>
+
+#define RTC PCF_RTC
 
 #define WATCHDOG_PIN 2
 #define DHT22_PIN 14 
@@ -81,14 +84,14 @@ char smallbuff[20];
 #define GSM_BUFF_SIZE 200
 DLGSM gsm;
 char gsm_buff[GSM_BUFF_SIZE];
-enum gsm_states { gsm_init_poff, gsm_idle, gsm_send_sms_status, gsm_send_http_status, gsm_upload_data, gsm_firmware_dl };
+enum gsm_states { gsm_init_poff, gsm_idle, gsm_booted, gsm_send_http_status, gsm_upload_data, gsm_firmware_dl, gsm_sms_sysinfo, gsm_sms_get_all_readings, gsm_sms_get_reading, gsm_sms_reboot, gsm_sms_uptime };
 static enum gsm_states gsm_curr_state = gsm_init_poff;
 static enum gsm_states requested_state = gsm_idle;
 
 DLHTTP http;
 DLFileUpload fup;
 
-DLSD sd(0,4);
+DLSD sd(SPI_HALF_SPEED,4);
 
 // IO setup
 DLMeasure measure;
@@ -133,6 +136,10 @@ uint32_t main_iter_cnt = 0;
 uint32_t measure_cnt = 0;
 
 void reboot() {
+	int i;
+	for(i=0;i<NUM_FILES;i++) {
+		sd.close(i);
+	}
 	cfg.wdt_event();	
 	reboot_now();
 }
@@ -155,8 +162,10 @@ void sys_log_message(char *msg) {
                 if (filesize != -1) {
                 	write_error = sd.write(SYSLOG, sys_buff);
                         if (write_error) {
-                        	Serial.println("Shit, an SD write error");
-                        	sd_error++;
+                        	Serial.print("SD write error fs: ");   
+				Serial.println(filesize, DEC);     
+        			sd.error();
+	        		sd_error++;
 			} else {
 				sd_error = 0;
 			}
@@ -181,7 +190,7 @@ void setup() {
 	int ret = 0;
 	int cdown = 0;
 	bool led = false;
-	set_bandgap(1080);
+	set_bandgap(1104, 0);
 	ext_wdt_reset();
 	wdt_disable();
 /*	noInterrupts();
@@ -232,14 +241,14 @@ void setup() {
 
   	// Initialize GSM
   	gsm.init(gsm_buff, GSM_BUFF_SIZE, 5);
-  	gsm.debug(1);
+  	gsm.debug(0);
 
 	// Initialize HTTP
 	http.init(gsm_buff, &gsm);
         ext_wdt_reset();
 
 	// Initialize SD
-	//sd.debug(1);
+	sd.debug(0);
 	cdown = 0;
 	while (ret != 1) { // No debugging
         	ret = sd.init();
@@ -248,6 +257,7 @@ void setup() {
 			_cons_serial.println(log_buff);
 		} else {
 			sd.error();
+			sd.reset();
 		}
 		led = !led;
 		digitalWrite(STATUS_LED_PIN, led);
@@ -270,9 +280,23 @@ void setup() {
 	cfg.load();
 	config = cfg.get_config();
 	if (config->http_status_time == 0)
-		config->http_status_time = 1*60*1000; // 1 min
+		config->http_status_time = 1*60; // 1 min
 	if (config->http_upload_time == 0)
-		config->http_upload_time = 10*60*1000; // 10 min
+		config->http_upload_time = 10*60; // 10 min
+
+	//config->http_status_time = 99999;
+	//config->http_upload_time = 99999;
+	//config->measure_time = 10;
+	//config->sampling_rate = 5;
+
+	config->num_samples = config->sampling_rate * config->measure_time;
+	config->sampling_delay = 1000 / config->sampling_rate;
+
+	// HAX
+	if (strlen(config->HTTP_URL) <= 1) {
+		Serial.println("URL HAX");
+		sprintf(config->HTTP_URL, "http://dl2.zsuatt.com/");
+	}
 
         ext_wdt_reset();
 
@@ -308,13 +332,13 @@ static int protothread_sys(struct pt *pt, int interval) {
 	char t = 0;
 	int32_t filesize = 0;
 	int tmp_voltage = 0;
+	static int sys_cnt = 0;
 	bool write_error = false;
 	DHT22_ERROR_t errorCode;
 	PT_BEGIN(pt);
 	while (1) {
 		PT_WAIT_UNTIL(pt, millis() - timestamp >= 10*interval || _cons_serial.available());
 		timestamp = millis();
-		wdt_reset();
 		if (_cons_serial.available()) {
 			t = _cons_serial.read();
 			if (t == 'u') {
@@ -399,8 +423,12 @@ static int protothread_sys(struct pt *pt, int interval) {
 			strcat(sys_buff, smallbuff);
 			strcat(sys_buff, "\r\n");
 	
-			sys_log_message(sys_buff);
-			
+			if (sys_cnt == 10) {
+				sys_log_message(sys_buff);
+				sys_cnt = 0;
+			} else
+				_cons_serial.print(sys_buff);
+
 			// Check health of device
 			for(t=0;t<NUM_THREADS;t++) {
 				if (threads[t].timing > THREAD_RUN_THRESHOLD)
@@ -416,6 +444,7 @@ static int protothread_sys(struct pt *pt, int interval) {
 			}
 
 			main_iter_cnt = 0;
+			sys_cnt++;
 		}
 	}
 	PT_END(pt);
@@ -425,17 +454,41 @@ static int protothread_sys(struct pt *pt, int interval) {
          - Take all the periodic analog measurements + write to SD
 	 - (Event handling?)
 */
-static int protothread_measure(struct pt *pt, int interval) {
+static int protothread_measure(struct pt *pt, uint16_t interval) {
 	static unsigned long timestamp = 0;
-	int32_t filesize = 0;
-	short val = 0;
+	static int delta_ts = 0;
+	static time_t last_measure;
+	static uint16_t interval_v;
+	static int32_t filesize = 0;
+	static short val = 0;
 
 	PT_BEGIN(pt);
+	interval_v = interval;
+	timestamp = millis();
 	while (1) {
-		PT_WAIT_UNTIL(pt, millis() - timestamp >= interval);
+		PT_WAIT_UNTIL(pt, (millis() - timestamp) >= interval_v);
+		// Logic for calculating delta sampling delays
+		// This way the sampling rate remains constant
+		delta_ts = millis() - timestamp;		
 		timestamp = millis();
+		if (delta_ts > interval && delta_ts < (2*interval)) {
+			interval_v = interval - (delta_ts - interval);
+		}
+		else
+			interval_v = interval;
+
+		//if (interval_v > interval+500 || interval_v < interval-500)
+		//	interval_v = interval;
+/*		Serial.print(millis());	
+		Serial.print(" ");
+		Serial.print(millis()-timestamp, DEC);
+		Serial.print(" ");
+		Serial.println(interval_v, DEC);		
+*/
+
 		measure_cnt = measure.read_all(1);
-		if (measure_cnt >= 30) {
+		if ((now() - last_measure) > config->measure_time || measure_cnt >= config->num_samples) {
+			last_measure = now();
 			measure.get_all();
 			measure.time_log_line(log_buff);   
 			measure.reset();
@@ -448,6 +501,7 @@ static int protothread_measure(struct pt *pt, int interval) {
 					sd.increment_file(DATALOG);
 					cfg.save_files_count(0);
 					filesize = sd.open(DATALOG, O_RDWR | O_CREAT | O_APPEND);
+					requested_state = gsm_upload_data;
 				}
 				sd.write(DATALOG, log_buff);
 				//sd.close(DATALOG);
@@ -470,11 +524,19 @@ static int protothread_measure(struct pt *pt, int interval) {
 */
 static int protothread_comm(struct pt *pt, int interval) {
 	static unsigned long timestamp = 0;
-	static int32_t last_upload = 0, last_status = 0, filesize = 0;
+	static int32_t filesize = 0;
+	static time_t last_upload = 0, last_status = 0, last_idle = 0, ctime;
 	static struct pt comm_inside_pt;
+	static int n;
 	char e=0, v;
 	char ret=0;
+	static SMS_t *sms;	
+	static Snap_t snap;
+	static double up;
+	
 	PT_BEGIN(pt);
+	last_upload = now();
+	//last_status = now();
 	timestamp = millis();
 	u = 0;
 	while (1) {
@@ -495,30 +557,58 @@ static int protothread_comm(struct pt *pt, int interval) {
 			PT_WAIT_THREAD(pt, gsm.PT_GPRS_init(&comm_inside_pt, &ret));
 			Serial.print("GPRS ret: ");
 			Serial.println(ret, DEC); 
-			gsm_curr_state = gsm_idle;
+			gsm_curr_state = gsm_booted;
 		} else if (gsm_curr_state == gsm_idle) {
 			LOG("GSM idle");
 	
-			PT_WAIT_UNTIL(pt, gsm.available() || (millis() - last_status) > config->http_status_time || (millis() - last_upload) > config->http_upload_time || requested_state != gsm_idle);
+			PT_WAIT_UNTIL(pt, gsm.available() || (now() - last_status) > config->http_status_time || (now() - last_upload) > config->http_upload_time || requested_state != gsm_idle || (now() - last_idle) > 10);
 
 			if (gsm.available()) {
 				PT_WAIT_THREAD(pt, gsm.PT_GSM_event_handler(&comm_inside_pt, &ret));
-				if (ret == GSM_EVENT_STATUS_REQ)
-					gsm_curr_state = gsm_upload_data;
-			} else if ((millis() - last_status) > config->http_status_time) {
+				if (ret == GSM_EVENT_STATUS_REQ) {
+					gsm_curr_state = gsm_send_http_status;
+				} else if (ret == GSM_EVENT_REBOOT) {
+					gsm_curr_state = gsm_sms_reboot;
+				} else if (ret == GSM_EVENT_GET_ALL_READINGS) {
+					gsm_curr_state = gsm_sms_get_all_readings;
+				} else if (ret == GSM_EVENT_GET_READING) {
+					gsm_curr_state = gsm_sms_get_reading;
+				} else if (ret == GSM_EVENT_SYSINFO) {
+					gsm_curr_state = gsm_sms_sysinfo;
+				} else if (ret == GSM_EVENT_UPTIME) {
+					gsm_curr_state = gsm_sms_uptime;
+				} 
+				sms = gsm.get_SMS();
+			} else if ((now() - last_status) > config->http_status_time) {
 				gsm_curr_state = gsm_send_http_status;
-			} else if ((millis() - last_upload) > config->http_upload_time) {
-				LOG("GSM upload...");
-				last_upload = millis();
+			} else if ((now() - last_upload) > config->http_upload_time) {
 				gsm_curr_state = gsm_upload_data;
 			} else if (requested_state != gsm_idle) {
 				LOG("Switching to requested state");
 				gsm_curr_state = requested_state;
 				requested_state = gsm_idle;
+			} else if ((now() - last_idle) > 10) {
+				last_idle = now();
+				LOG("Checking for SMS");
+				PT_WAIT_THREAD(pt, gsm.PT_SMS_check(&comm_inside_pt, &ret));
+                                if (ret == GSM_EVENT_STATUS_REQ) {
+                                        gsm_curr_state = gsm_send_http_status;
+                                } else if (ret == GSM_EVENT_REBOOT) {
+                                        gsm_curr_state = gsm_sms_reboot;
+                                } else if (ret == GSM_EVENT_GET_ALL_READINGS) {
+                                        gsm_curr_state = gsm_sms_get_all_readings;
+                                } else if (ret == GSM_EVENT_GET_READING) {
+                                        gsm_curr_state = gsm_sms_get_reading;
+                                } else if (ret == GSM_EVENT_SYSINFO) {
+                                        gsm_curr_state = gsm_sms_sysinfo;
+                                } else if (ret == GSM_EVENT_UPTIME) {
+					gsm_curr_state = gsm_sms_uptime;
+				}
+				sms = gsm.get_SMS();
 			}
-
 		} else if (gsm_curr_state == gsm_send_http_status) {
-			last_status = millis();
+			LOG("HTTP status");
+			last_status = now();
 			*tmp_buff = '\0';
 			strcat(tmp_buff, config->HTTP_URL);
                         strcat_P(tmp_buff, PSTR("status.php"));
@@ -545,15 +635,15 @@ static int protothread_comm(struct pt *pt, int interval) {
                         strcat_P(tmp_buff, PSTR("&cl="));
                         fmtUnsigned(u, smallbuff, 12);
                         strcat(tmp_buff, smallbuff);
-			filesize = sd.open(DATALOG, O_RDWR | O_CREAT | O_APPEND);
+			filesize = sd.open(DATALOG, O_READ);
 			sd.close(DATALOG);
                         strcat_P(tmp_buff, PSTR("&cls="));
 			fmtUnsigned(filesize, smallbuff, 12);
 			strcat(tmp_buff, smallbuff);
 			strcat_P(tmp_buff, PSTR("&v="));
-			fmtUnsigned(curr_voltage, smallbuff, 12);
+			fmtUnsigned(get_supply_voltage(), smallbuff, 12);
 			strcat(tmp_buff, smallbuff);
-                        
+			
 			PT_WAIT_THREAD(pt, http.PT_GET(&comm_child_pt, &ret, tmp_buff));
                         get_from_flash_P(PSTR("R: "), tmp_buff);
                         _cons_serial.print(tmp_buff);
@@ -572,24 +662,113 @@ static int protothread_comm(struct pt *pt, int interval) {
 			}
                         //PT_WAIT_THREAD(pt, gsm.PT_pwr_off(&comm_inside_pt, 0));
 			//gsm_curr_state = gsm_idle;
-		} else if (gsm_curr_state == gsm_send_sms_status) { 
-			LOG("Sent virtual status");
+		} else if (gsm_curr_state == gsm_booted) { 
 			PT_WAIT_THREAD(pt, gsm.PT_GPRS_check_conn_state(&comm_inside_pt, &ret));
 
-			sprintf(tmp_buff, "Hello world");
+			sprintf(tmp_buff, "Datalogger %d booted.", config->id);
+			Serial.println(tmp_buff);
 			PT_WAIT_THREAD(pt, gsm.PT_SMS_send(&comm_inside_pt, &ret, "+4527148803", tmp_buff, strlen(tmp_buff)));
-			//PT_WAIT_THREAD(pt, gsm.PT_pwr_off(&comm_inside_pt, 0));
 			gsm_curr_state = gsm_idle;
-			PT_YIELD(pt);
 		} else if (gsm_curr_state == gsm_upload_data) {
-			LOG("Doing HTTP upload");
-			PT_WAIT_THREAD(pt, fup.PT_upload(&comm_inside_pt, &ret, DATALOG_READONLY, 0));
-			if (ret == 1) {
-				LOG("Upload successful");
-			} else {
-				LOG("Upload failed");
+			LOG("HTTP upload");
+			n = sd.get_saved_count(DATALOG);
+			//sd.set_files_count(DATALOG, sd.get_files_count(DATALOG)+1);
+			//cfg.save_files_count(0);
+			if (n <= (sd.get_files_count(DATALOG)-1)) {			
+				PT_WAIT_THREAD(pt, fup.PT_upload(&comm_inside_pt, &ret, DATALOG_READONLY, n));
+				if (ret == 1) {
+					LOG("Upload successful");
+					sd.set_saved_count(DATALOG, n+1);
+					cfg.save_files_count(1);
+				} else if (ret == 2) {
+					LOG("File doesnt exist");
+					sd.set_saved_count(DATALOG, n+1);
+					cfg.save_files_count(1);
+				} else {
+					sprintf(tmp_buff, "Upload failed: %d", ret);
+					LOG(tmp_buff);
+				}
 			}
+			last_upload = now();
                         //PT_WAIT_THREAD(pt, gsm.PT_pwr_off(&comm_inside_pt, 0));
+			gsm_curr_state = gsm_idle;
+		} else if (gsm_curr_state == gsm_sms_sysinfo) {	
+			strcpy(tmp_buff, sys_buff);
+                        PT_WAIT_THREAD(pt, gsm.PT_SMS_send(&comm_inside_pt, &ret, sms->number, tmp_buff, strlen(tmp_buff)));
+			gsm_curr_state = gsm_idle;
+		} else if (gsm_curr_state == gsm_sms_get_all_readings) {
+			*(tmp_buff) = '\0';
+			for(v=0;v<NUM_IO;v++) {
+				if (measure.snapshot(&snap, v)) {
+					sprintf(smallbuff, "p%d ", v);
+					strcat(tmp_buff, smallbuff);
+					fmtDouble((double)snap.val, 1, smallbuff, 12);
+					strcat(tmp_buff, smallbuff);
+					if (snap.std_dev > 0.0) {
+						strcat(tmp_buff, " ");
+						fmtDouble((double)snap.std_dev, 1, smallbuff, 12);
+						strcat(tmp_buff, smallbuff);
+					}
+				}
+				strcat(tmp_buff, "\n");
+			}
+			Serial.println(tmp_buff);
+			PT_WAIT_THREAD(pt, gsm.PT_SMS_send(&comm_inside_pt, &ret, sms->number, tmp_buff, strlen(tmp_buff)));
+			gsm_curr_state = gsm_idle;
+		} else if (gsm_curr_state == gsm_sms_get_reading) {
+			*(tmp_buff) = '\0';
+			v = 0+atoi(sms->message+2);
+			if (v >= 0 && v < NUM_IO) {
+				if (measure.snapshot(&snap, v)) {
+					sprintf(smallbuff, "Port: %d\n", v);
+                                        strcat(tmp_buff, smallbuff);
+					sprintf(smallbuff, "Value: ");
+					strcat(tmp_buff, smallbuff);
+                                        fmtDouble((double)snap.val, 1, smallbuff, 12);
+                                        strcat(tmp_buff, smallbuff);
+					sprintf(smallbuff, "\nStd.Dev: ");
+					strcat(tmp_buff, smallbuff);
+					fmtDouble((double)snap.std_dev, 2, smallbuff, 12);
+					strcat(tmp_buff, smallbuff);
+					sprintf(smallbuff, "\nMin: ");
+					strcat(tmp_buff, smallbuff);
+					fmtDouble((double)snap.min, 2, smallbuff, 12);
+					strcat(tmp_buff, smallbuff);
+					sprintf(smallbuff, "\nMax: ");
+					strcat(tmp_buff, smallbuff);
+					fmtDouble((double)snap.max, 2, smallbuff, 12);
+					strcat(tmp_buff, smallbuff);
+					sprintf(smallbuff, "\nVref: ");
+					fmtUnsigned(get_supply_voltage(), smallbuff, 12);
+					strcat(tmp_buff, smallbuff);
+				} else {
+					sprintf(tmp_buff, "Invalid port: %d", v);
+				}
+			} else {
+				sprintf(tmp_buff, "Invalid port: %d", v);
+			}
+
+			PT_WAIT_THREAD(pt, gsm.PT_SMS_send(&comm_inside_pt, &ret, sms->number, tmp_buff, strlen(tmp_buff)));
+			gsm_curr_state = gsm_idle;
+		} else if (gsm_curr_state == gsm_sms_reboot) {
+			strcpy(tmp_buff, "Rebooting!");
+                        PT_WAIT_THREAD(pt, gsm.PT_SMS_send(&comm_inside_pt, &ret, sms->number, tmp_buff, strlen(tmp_buff)));
+			reboot();
+			gsm_curr_state = gsm_idle;
+		} else if (gsm_curr_state == gsm_sms_uptime) {
+			ctime = now() - dl_start_time;
+			up = ctime / 3600.0;
+			strcpy(tmp_buff, "Uptime (h): ");
+			fmtDouble(up, 3, smallbuff, 12);
+			strcat(tmp_buff, smallbuff);
+			strcat(tmp_buff, "\nWDT: ");
+			fmtUnsigned(cfg.get_wdt_events(), smallbuff, 12);
+			strcat(tmp_buff, smallbuff);
+			strcat(tmp_buff, "\nEPR: ");
+			fmtUnsigned(cfg.get_eeprom_events(), smallbuff, 12);
+			strcat(tmp_buff, smallbuff);
+			Serial.println(tmp_buff);
+			PT_WAIT_THREAD(pt, gsm.PT_SMS_send(&comm_inside_pt, &ret, sms->number, tmp_buff, strlen(tmp_buff)));
 			gsm_curr_state = gsm_idle;
 		} else {	
 			PT_WAIT_UNTIL(pt, millis() - timestamp >= (10*interval));
@@ -681,6 +860,7 @@ static int protothread_wdt(struct pt *pt, int interval) {
 	PT_BEGIN(pt);
 	while (1) {
 		PT_WAIT_UNTIL(pt, (millis()-timestamp) >= interval);
+		wdt_reset();
 		timestamp = millis();
 	        digitalWrite(WATCHDOG_PIN, LOW);
 		PT_WAIT_UNTIL(pt, (millis() - timestamp) >= 40);
@@ -697,10 +877,10 @@ static int protothread_wdt(struct pt *pt, int interval) {
 
 void loop() {
 	uint32_t ts = millis();
-	protothread_sys(&threads[THREAD_SYS].pt, 100);
+	protothread_sys(&threads[THREAD_SYS].pt, 1000);
 	SET_IF_MAX(threads[THREAD_SYS].timing, millis()-ts);
 	ts = millis();
-	protothread_measure(&threads[THREAD_MEAS].pt, 500);
+	protothread_measure(&threads[THREAD_MEAS].pt, config->sampling_delay);
 	SET_IF_MAX(threads[THREAD_MEAS].timing, millis()-ts);
 	ts = millis();
 	protothread_comm(&threads[THREAD_COMM].pt, 500);	

@@ -1,6 +1,13 @@
 #include <Arduino.h>
 #include "DLSD.h"
 
+prog_char sd_dir_0[] PROGMEM = "";
+prog_char sd_dir_1[] PROGMEM = "DATA";
+prog_char sd_dir_2[] PROGMEM = "SYSTEM";
+prog_char sd_dir_3[] PROGMEM = "SERIAL";
+
+PROGMEM const char *sd_dir_table[] = { sd_dir_0, sd_dir_1, sd_dir_2, sd_dir_3, sd_dir_1 };
+
 prog_char sd_filename_0[] PROGMEM = "CONFIG";
 prog_char sd_filename_1[] PROGMEM = "DAT00000";
 prog_char sd_filename_2[] PROGMEM = "SYS00000";
@@ -24,7 +31,7 @@ DLSD::DLSD(char fullspeed, uint8_t CS)
 }
 
 int8_t DLSD::init() {
-	uint8_t ret = 0;
+	uint8_t ret = 0, i;
 //	if (_fullspeed)
 //		ret = _card.init(SPI_FULL_SPEED, _CS);
 //	else
@@ -45,12 +52,34 @@ int8_t DLSD::init() {
 	}
 	if (_DEBUG)
 		_card.ls(LS_DATE | LS_SIZE);
+
+	for(i = 0;i<NUM_FILES;i++) {
+		get_from_flash(&(sd_dir_table[i]), _filename);
+		if (strlen(_filename) > 0 && !_card.exists(_filename)) {
+			if (_DEBUG) {
+				Serial.print("Creating directory: ");
+				Serial.println(_filename);
+			}
+			_card.mkdir(_filename);
+		}
+	}
 	_inited = 1;
 	return 1;
 }
 
 void DLSD::error() {
 	_card.errorPrint();
+}
+
+void DLSD::reset() {
+	SPCR = 0;
+	SPSR = 0;
+	pinMode(4, OUTPUT);
+	digitalWrite(4, HIGH);
+	delay(1000);
+	digitalWrite(4, LOW);
+	delay(1000);
+	digitalWrite(4, HIGH);
 }
 
 uint8_t DLSD::get_num_files() {
@@ -86,25 +115,37 @@ void DLSD::reset_saved_count() {
 }
 
 void DLSD::seek_forward_files_count() {
-	int n, cnt;
+	int n, cnt, scnt;
+	char path[50];
 	bool exists = true;
 	for(n=FILES_CNT_START;n<=FILES_CNT_END;n++) {
-		exists = true;
+		exists = false;
 		cnt = _files_count[n];
+		scnt = cnt;
 		do {
-			*_filename = '\0';
-			get_from_flash(&(sd_filename_table[n]), _filename);
-			if (n != 0)
-				pad_filename(_filename, cnt);
-			strcat_P(_filename, sd_filename_ext);
+			*(path) = '\0';
+                	get_from_flash(&(sd_dir_table[n]), _filename);
+               		strcat(path, _filename);
+                	strcat(path, "/");
+                	get_from_flash(&(sd_filename_table[n]), _filename);
+                	if (n != 0)
+                        	pad_filename(_filename, _files_count[n]);
+                	strcat_P(_filename, sd_filename_ext);
+                	strcat(path, _filename);
+ 	
 			exists = _card.exists(_filename);
 			cnt++;
 		} while (exists);
-		Serial.print("Setting #");
-		Serial.print(n, DEC);
-		Serial.print(" to ");
-		Serial.println(cnt, DEC);
-		set_files_count(n, cnt);
+		if (cnt > 1)
+			cnt = cnt - 2;
+
+		if (cnt > scnt) {
+			Serial.print("Setting #");
+			Serial.print(n, DEC);
+			Serial.print(" to ");
+			Serial.println(cnt, DEC);
+			set_files_count(n, cnt);
+		}
 	}
 }
 
@@ -135,18 +176,23 @@ void DLSD::debug(int v){
 unsigned long DLSD::open(uint8_t n, uint8_t flags) {
 	uint8_t ret;
 	unsigned long fsize = 0;
+	char path[50];
 	digitalWrite(_CS, LOW);
 	if (_files_open[n] == false) {
-		*_filename = '\0';
+		*(path) = '\0';
+		get_from_flash(&(sd_dir_table[n]), _filename);
+		strcat(path, _filename);
+		strcat(path, "/");
 		get_from_flash(&(sd_filename_table[n]), _filename);
 		if (n != 0)
 			pad_filename(_filename, _files_count[n]);
 		strcat_P(_filename, sd_filename_ext);		
+		strcat(path, _filename);
 		if (_DEBUG) {
 			Serial.print("Opening ");
-			Serial.println(_filename);
+			Serial.println(path);
 		}
-		ret = _files[n].open(_filename, flags);
+		ret = _files[n].open(path, flags);
 		if (!ret || !_files[n].isOpen())
 			return -1;
 		_files_open[n] = true;

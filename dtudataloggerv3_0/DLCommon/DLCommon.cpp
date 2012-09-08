@@ -203,8 +203,8 @@ long get_supply_voltage() {
 	return _supply_voltage;
 }
 
-void set_bandgap(long iref) {
-	InternalReferenceVoltage = iref;
+void set_bandgap(long iref, int offset) {
+	InternalReferenceVoltage = iref + offset;
 }
 
 int get_bandgap(void)

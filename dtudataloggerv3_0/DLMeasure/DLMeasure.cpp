@@ -139,13 +139,40 @@ uint8_t DLMeasure::get_all() {
 				_std_dev[i] = (double)(sqrt((_sum_cnt*_std_dev[i]) - (_vals[i]*_vals[i])) / _sum_cnt); // Rolling stddev
 				_vals[i] = (double)(_vals[i] / _sum_cnt); // Mean
 			} else if (_AOD[i] == IO_COUNTER) {
-				_std_dev[i] = (double)(sqrt((dtime*_std_dev[i]) - (_vals[i]*_vals[i])) / dtime);
+				Serial.println((_sum_cnt*_std_dev[i]) - (_vals[i]*_vals[i]));
+				Serial.println(sqrt((_sum_cnt*_std_dev[i]) - (_vals[i]*_vals[i])) / _sum_cnt);
+				_std_dev[i] = (double)(sqrt((_sum_cnt*_std_dev[i]) - (_vals[i]*_vals[i])) / _sum_cnt);
 				_vals[i] = (double)(_vals[i] / dtime);
+
 			}		
 	}
 	rdy = 1;
 	_smeasure = 0;	
 	return rdy;
+}
+
+uint8_t DLMeasure::snapshot(Snap_t *st, int i) {
+	double dtime = ((double)millis() - (double)_smeasure) / 1000.0;
+
+	if (_AOD[i] == IO_OFF) return 0;
+
+	if (_AOD[i] == IO_ANALOG) {
+		st->std_dev = (double)(sqrt((_sum_cnt*_std_dev[i]) - (_vals[i]*_vals[i])) / _sum_cnt);
+		st->val = (double)(_vals[i] / _sum_cnt);
+		st->min = _mins[i];
+		st->max = _maxs[i];
+	} else if (_AOD[i] == IO_COUNTER) {
+		st->std_dev = (double)(sqrt((_sum_cnt*_std_dev[i]) - (_vals[i]*_vals[i])) / _sum_cnt);
+		st->val = (double)(_vals[i] / _sum_cnt);
+		st->min = 0;
+		st->max = 0;
+	} else if (_AOD[i] == IO_DIGITAL) {
+		st->val = (double)(_vals[i]);
+		st->std_dev = 0;
+		st->min = 0;
+		st->max = 0;
+	}
+	return 1;	
 }
 
 void DLMeasure::reset() {
@@ -191,6 +218,10 @@ void DLMeasure::time_log_line(char *line) {
 	strcat(line, " V");
 	fmtUnsigned(get_supply_voltage(), tmpbuff, 12);
 	strcat(line, tmpbuff);
+	strcat(line, " N");
+	fmtUnsigned(_sum_cnt, tmpbuff, 12);
+	strcat(line, tmpbuff);
+
 	for(uint8_t i=ANALOG_OFFSET;i<NUM_IO;i++) {
 		if (_AOD[i] != IO_OFF)
 			strcat(line, " ");

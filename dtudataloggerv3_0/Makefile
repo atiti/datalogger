@@ -1,4 +1,5 @@
 # Configuring target etc
+#TARGET=serial_test
 TARGET=datalogger_skel
 #TARGET=bandgap_measure
 #TARGET=bandgap
@@ -18,7 +19,7 @@ OPT=s  # Optimization
 AVRDUDE_BIN=$(ARDUINO_DIR)/hardware/tools/avrdude 
 #AVRDUDE_BIN=/usr/local/bin/avrdude
 AVRDUDE_PROGRAMMER=arduino #stk500v1
-AVRDUDE_PORT=/dev/ttyUSB3
+AVRDUDE_PORT=/dev/ttyUSB0
 #AVRDUDE_PORT=/dev/ttyACM3
 AVRDUDE_CONF=$(ARDUINO_DIR)/hardware/tools/avrdude.conf
 #AVRDUDE_CONF=/usr/local/etc/avrdude.conf

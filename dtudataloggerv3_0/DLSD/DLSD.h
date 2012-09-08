@@ -23,6 +23,7 @@ class DLSD
 	public:
 		DLSD(char fullspeed, uint8_t CS_pin);
 		void debug(int v);
+		void reset();
 		void error();
 		int8_t init();
 		uint8_t get_num_files();

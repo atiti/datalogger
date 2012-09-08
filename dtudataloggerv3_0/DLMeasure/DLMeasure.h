@@ -53,6 +53,14 @@ const char num2pin_mapping[] = { 24, // Port 0 - AI0
 				18 // Port 13 - D18
 				};
 
+typedef struct {
+	double val;
+	double std_dev;
+	double max;
+	double min;
+} Snap_t;
+
+
 class DLMeasure
 {
 	public:
@@ -67,6 +75,7 @@ class DLMeasure
 		uint16_t read(uint8_t pin);
 		uint32_t read_all(uint8_t intr);
 		uint32_t read_all();
+		uint8_t snapshot(Snap_t *st, int i);
 		void reset();
 		uint8_t get_all();
 		void set_int_fun(INT_callback fun);

@@ -104,7 +104,7 @@ int DLHTTP::PT_GET(struct pt *pt, char *ret, char *url) {
 
 	_gsm->GSM_set_callback(HTTP_process_reply);
 
-        PT_WAIT_THREAD(pt, _gsm->PT_recv(&child_pt, ret, "CLOSED", 3000));
+        PT_WAIT_THREAD(pt, _gsm->PT_recv(&child_pt, ret, "CLOSED", 5000, 0));
         
 	_gsm->GSM_set_callback(NULL);
 
@@ -207,7 +207,7 @@ int DLHTTP::PT_POST_end(struct pt *pt, char *ret) {
 
 	_gsm->GSM_set_callback(HTTP_process_reply);
 
-        PT_WAIT_THREAD(pt, _gsm->PT_recv(&child_pt, ret, "CLOSED", 3000));
+        PT_WAIT_THREAD(pt, _gsm->PT_recv(&child_pt, ret, "CLOSED", 5000, 0));
 
 	_gsm->GSM_set_callback(NULL);
 	

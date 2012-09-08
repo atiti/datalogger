@@ -83,38 +83,42 @@ int DLConfig::config_process_callback(char *line, int len) {
         } else if (strncmp_P(line, PSTR("ID"), 2) == 0) {
 		tmpvar = atoi(param);
 		_config->id = tmpvar;
-		get_from_flash_P(PSTR("DEV ID: "), _buff);
+		get_from_flash_P(PSTR("Device ID: "), _buff);
 		Serial.print(_buff);
 		Serial.println(tmpvar);
 		_epc.id = tmpvar;
 	} else if (strncmp_P(line, PSTR("ME"), 2) == 0) { // Measurement params
 		if (line[8] == 'T') {  // MEASURE_TIME
 			_config->measure_time = atoi(param);					
-			get_from_flash_P(PSTR("MESTIME: "), _buff);
+			get_from_flash_P(PSTR("Measuring Time: "), _buff);
 			Serial.print(_buff);
 			Serial.println(_config->measure_time, DEC);
-			_measure->set_measure_time(_config->measure_time);	
-		} else if (line[8] == 'L') { // MEAUSURE_LENGTH
-			_config->measure_length = atoi(param);
-			get_from_flash_P(PSTR("MESLEN: "), _buff);
-			Serial.print(_buff);
-			Serial.println(_config->measure_length, DEC);
-		}
+			_measure->set_measure_time(_config->measure_time);
+			_epc.measure_time = _config->measure_time;
+		}	
+	} else if (strncmp_P(line, PSTR("SA"), 2) == 0) { // Sampling rate
+		_config->sampling_rate = atoi(param);
+		get_from_flash_P(PSTR("Sampling Rate: "), _buff);
+		Serial.print(_buff);
+		Serial.println(_config->sampling_rate, DEC);
+		_epc.sampling_rate = _config->sampling_rate;
 	} else if (strncmp_P(line, PSTR("HT"), 2) == 0) { // HTTP params
 		if (line[5] == 'U' && line[6] == 'R') { // HTTP_URL
 			param = fforward(param);
 			if (param != NULL) {
+				get_from_flash_P(PSTR("HTTP URL: "), _buff);
+				Serial.print(_buff);
 				Serial.println(param);
 				*(_epc.HTTP_URL) = '\0'; 
-				strncat(_epc.HTTP_URL, param, strlen(param));
+				strcat(_epc.HTTP_URL, param);
 			}
 		} else if (line[5] == 'S') { // HTTP_STATUS_TIME
-			_config->http_status_time = atol(param)*60*1000;
+			_config->http_status_time = atol(param)*60;
 			get_from_flash_P(PSTR("HST: "), _buff);
 			Serial.print(_buff);
 			Serial.println(_config->http_status_time, DEC);
 		} else if (line[5] == 'U' && line[6] == 'P') { // HTTP_UPLOAD_TIME
-			_config->http_upload_time = atol(param)*60*1000;
+			_config->http_upload_time = atol(param)*60;
 			get_from_flash_P(PSTR("HUT: "), _buff);
 			Serial.print(_buff);
 			Serial.println(_config->http_upload_time, DEC);
@@ -124,7 +128,7 @@ int DLConfig::config_process_callback(char *line, int len) {
 			param = fforward(param);
 			if (param != NULL) {
 				*(_epc.APN) = '\0';
-				strncat(_epc.APN, param, strlen(param));
+				strcat(_epc.APN, param);
 			}
 		} else if (line[5] == 'U') { // GPRS_USER
 		} else if (line[5] == 'P') { // GPRS_PASS
@@ -266,6 +270,14 @@ uint8_t DLConfig::print_config_EEPROM(EEPROM_config_t *epc) {
 	Serial.println(epc->HTTP_URL);
 	Serial.print("Checksum: ");
 	Serial.println(epc->checksum, HEX);	
+}
+
+uint32_t DLConfig::get_wdt_events() {
+	return _epc.wdt_events;
+}
+
+uint32_t DLConfig::get_eeprom_events() {
+	return _epc.eeprom_events;
 }
 
 uint8_t DLConfig::load_string_EEPROM(uint16_t addr, char *data, int len) {
