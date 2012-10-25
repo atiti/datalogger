@@ -47,6 +47,7 @@ int DLHTTP::PT_backend_start(struct pt *pt, char *ret, char *host, uint16_t port
 	if (*ret != 1) {
 		error_cnt++;
 		if (error_cnt > 5) {
+			DEBUG_LOG("GSM Restart");
 			PT_WAIT_THREAD(pt, _gsm->PT_restart(&child_pt, ret));
 			error_cnt = 0;
 		}
@@ -101,12 +102,18 @@ int DLHTTP::PT_GET(struct pt *pt, char *ret, char *url) {
         _gsm->GPRS_send("\r\n"); // Trailing \r\n to finish the header
         
 	PT_WAIT_THREAD(pt, _gsm->PT_GPRS_send_end(&child_pt, ret));
-
+	
+	DEBUG_LOG("Finished sending");
+	
 	_gsm->GSM_set_callback(HTTP_process_reply);
+
+	DEBUG_LOG("Waiting for CLOSED");
 
         PT_WAIT_THREAD(pt, _gsm->PT_recv(&child_pt, ret, "CLOSED", 5000, 0));
         
 	_gsm->GSM_set_callback(NULL);
+
+	DEBUG_LOG("Finishing up");
 
 	PT_WAIT_THREAD(pt, PT_backend_end(&child_pt, ret));
 

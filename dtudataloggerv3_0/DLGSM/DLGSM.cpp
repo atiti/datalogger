@@ -94,7 +94,7 @@ PROGMEM const char *gprs_state_table[] = { gprs_state_0, gprs_state_1, gprs_stat
 		Serial.print(v); \
 		} \
 
-#define DEBUG 0
+#define DEBUG 1
 
 #ifdef HARDWARE_SERIAL
 #define _gsmserial Serial1
@@ -156,7 +156,8 @@ int GSM_process_SMS_list(char *buff, int size) {
 
 DLGSM::DLGSM()
 {
-	pinMode(GSM_PWR, INPUT);
+	pinMode(GSM_PWR, OUTPUT);
+	digitalWrite(GSM_PWR, HIGH);
 	for(uint8_t k=0;k<5;k++) {
 		_gsm_lac[k] = 0;
 		_gsm_ci[k] =  0;
@@ -225,152 +226,156 @@ int DLGSM::PT_recvline(struct pt *pt, char *ret, char *ptr, int len, int tout, c
 }
 
 int DLGSM::PT_recv(struct pt *pt, char *ret, char *conf, int tout, char process) {
-static uint32_t ts, startts;
-static struct pt linerecv_pt;
+	static uint32_t ts, startts;
+	static struct pt linerecv_pt;
 
-PT_BEGIN(pt);
-ts = millis();
-*ret = 0;
-PT_WAIT_UNTIL(pt, _gsmserial.available() || (millis() - ts) > tout);
-ts = millis();
-if (!_gsmserial.available()) {
+	PT_BEGIN(pt);
+
+	ts = millis();
 	*ret = 0;
-	PT_EXIT(pt);
-}
-startts = millis();
-_gsm_wline = 1;
-while (_gsmserial.available() || (millis() - startts) < tout) {
-	PT_WAIT_THREAD(pt, PT_recvline(&linerecv_pt, ret, _gsm_buff, _gsm_buffsize, tout, process));
-	if (conf != NULL && strstr(_gsm_buff, conf) != NULL)
-		*ret = 1;
-	else if (conf != NULL)
+	PT_WAIT_UNTIL(pt, _gsmserial.available() || (millis() - ts) > tout);
+	ts = millis();
+	if (!_gsmserial.available()) {
 		*ret = 0;
-}
-_gsm_wline = 0;
-PT_END(pt);
+		PT_EXIT(pt);
+	}
+	startts = millis();
+	_gsm_wline = 1;
+	while (_gsmserial.available() || (millis() - startts) < tout) {
+		PT_WAIT_THREAD(pt, PT_recvline(&linerecv_pt, ret, _gsm_buff, _gsm_buffsize, tout, process));
+		if (conf != NULL && strstr(_gsm_buff, conf) != NULL)
+			*ret = 1;
+		else if (conf != NULL)
+			*ret = 0;
+	}
+	_gsm_wline = 0;
+	PT_END(pt);
 }
 
 int DLGSM::PT_send_recv(struct pt *pt, char *ret, char *cmd, int tout) {
-static uint32_t ts, startts;
-static struct pt linerecv_pt;
-static char gotsmtg = 0;
-PT_BEGIN(pt);
-*ret = 0;
-gotsmtg = 0;
-ts = millis();
-GSM_send(cmd);
-PT_WAIT_UNTIL(pt, _gsmserial.available() || (millis() - ts) > tout);
-ts = millis();
+	static uint32_t ts, startts;
+	static struct pt linerecv_pt;
+	static char gotsmtg = 0;
+	PT_BEGIN(pt);
 
-if (!_gsmserial.available()) {
-	PT_RESTART(pt);
-}
-startts = millis();
-_gsm_wline = 1;
-while (_gsmserial.available()  || (millis() - startts) < tout) {
-	PT_WAIT_THREAD(pt, PT_recvline(&linerecv_pt, ret, _gsm_buff, _gsm_buffsize, tout, 1));
-	if (*ret > gotsmtg)
-		gotsmtg = *ret;
-	else if (*ret == 0)
-		_tout_cnt++;
+	*ret = 0;
+	gotsmtg = 0;
 	ts = millis();
-}
-if (*ret == 0)
-	*ret = gotsmtg;
-_gsm_wline = 0;
-PT_END(pt);
+	GSM_send(cmd);
+	PT_WAIT_UNTIL(pt, _gsmserial.available() || (millis() - ts) > tout);
+	ts = millis();
+
+	if (!_gsmserial.available()) {
+		PT_RESTART(pt);
+	}
+	startts = millis();
+	_gsm_wline = 1;
+	while (_gsmserial.available()  || (millis() - startts) < tout) {
+		PT_WAIT_THREAD(pt, PT_recvline(&linerecv_pt, ret, _gsm_buff, _gsm_buffsize, tout, 1));
+		if (*ret > gotsmtg)
+			gotsmtg = *ret;
+		else if (*ret == 0)
+			_tout_cnt++;
+		ts = millis();
+	}
+	if (*ret == 0)
+		*ret = gotsmtg;
+	_gsm_wline = 0;
+	PT_END(pt);
 }
 
 int DLGSM::PT_send_recv_confirm(struct pt *pt, char *ret, char *cmd, char *conf, int tout) {
-static uint32_t ts,startts;
-static struct pt linerecv_pt;
-PT_BEGIN(pt);
-*ret = 0;
-ts = millis();
-GSM_send(cmd);
-PT_WAIT_UNTIL(pt, _gsmserial.available() || (millis() - ts) > tout);
-
-if (!_gsmserial.available()) {
+	static uint32_t ts,startts;
+	static struct pt linerecv_pt;
+	PT_BEGIN(pt);
 	*ret = 0;
-	PT_EXIT(pt);
-}
-ts = millis();
-startts = millis();
-_gsm_wline = 1;
-while (_gsmserial.available() || (millis() - startts) < tout) { 
-	PT_WAIT_THREAD(pt, PT_recvline(&linerecv_pt, ret, _gsm_buff, _gsm_buffsize, tout, 1));
 	ts = millis();
-	if (*ret == 0)
-		_tout_cnt++;
+	GSM_send(cmd);
+	PT_WAIT_UNTIL(pt, _gsmserial.available() || (millis() - ts) > tout);
 
-	if (conf != NULL && strstr(_gsm_buff, conf) != NULL) {
-		*ret = 1;
-		PT_EXIT(pt);
-	} else if (conf != NULL && (strstr(_gsm_buff, "ERROR") != NULL || strstr(_gsm_buff, "FAIL") != NULL)) {
-		*ret = 2;
-		_error_cnt++;
-		PT_EXIT(pt);
-	} else if (conf != NULL)
+	if (!_gsmserial.available()) {
 		*ret = 0;
-}
-_gsm_wline = 0;
-PT_END(pt);
+		PT_EXIT(pt);
+	}
+	ts = millis();
+	startts = millis();
+	_gsm_wline = 1;
+	while (_gsmserial.available() || (millis() - startts) < tout) { 
+		PT_WAIT_THREAD(pt, PT_recvline(&linerecv_pt, ret, _gsm_buff, _gsm_buffsize, tout, 1));
+		ts = millis();
+		if (*ret == 0)
+			_tout_cnt++;
+
+		if (conf != NULL && strstr(_gsm_buff, conf) != NULL) {
+			*ret = 1;
+			PT_EXIT(pt);
+		} else if (conf != NULL && (strstr(_gsm_buff, "ERROR") != NULL || strstr(_gsm_buff, "FAIL") != NULL)) {
+			*ret = 2;
+			_error_cnt++;
+			PT_EXIT(pt);
+		} else if (conf != NULL)
+			*ret = 0;
+	}
+	_gsm_wline = 0;
+	PT_END(pt);
 }
 
 int DLGSM::PT_GSM_init(struct pt *pt, char *ret) {
-static uint32_t ts=0;
-static struct pt child_pt;
-static char iret = 0, k;
-PT_BEGIN(pt);
-k = 0;
-//PT_WAIT_THREAD(pt, PT_pwr_on(&child_pt));
-PT_WAIT_UNTIL(pt, millis()-ts > 1000); // Wait until module inits
-ts = millis();
+	static uint32_t ts=0;
+	static struct pt child_pt;
+	static char iret = 0, k;
+	PT_BEGIN(pt);
 
-while (k < GSM_INIT_LEN) {
-	iret = 0;
-	get_from_flash(&(gsm_init_string_table[k]), _gsm_buff);
-	PT_WAIT_THREAD(pt, PT_send_recv_confirm(&child_pt, &iret, _gsm_buff, "OK", 1000));
-	if (iret > 0)
-		k++;
-}
-*ret = 1;
-PT_END(pt);
+	k = 0;
+	//PT_WAIT_THREAD(pt, PT_pwr_on(&child_pt));
+	PT_WAIT_UNTIL(pt, millis()-ts > 1000); // Wait until module inits
+	ts = millis();
+
+	while (k < GSM_INIT_LEN) {
+		iret = 0;
+		get_from_flash(&(gsm_init_string_table[k]), _gsm_buff);
+		PT_WAIT_THREAD(pt, PT_send_recv_confirm(&child_pt, &iret, _gsm_buff, "OK", 1000));
+		if (iret > 0)
+			k++;
+	}
+	*ret = 1;
+	PT_END(pt);
 }
 
 int DLGSM::PT_GPRS_init(struct pt *pt, char *ret) {
-static uint8_t len;
-static struct pt child_pt;
-static char k;
-PT_BEGIN(pt);
-//if (!CONN_get_flag(CONN_NETWORK))
-//        len = GPRS_INIT_NONTWR_LEN;
-//else
-len = GPRS_INIT_LEN;
-k = 0;
-while (k < len) { 	
-	if (k == GPRS_INIT_ATTACH_CMD)
-		GSM_set_timeout(50);
-	*ret = 0;
-	get_from_flash(&(gprs_init_string_table[k]), _gsm_buff);
-	if (k != (len-1)) {
-		PT_WAIT_THREAD(pt, PT_send_recv_confirm(&child_pt, ret, _gsm_buff, "OK", 30000));
-	} else {
-		PT_WAIT_THREAD(pt, PT_send_recv(&child_pt, ret, _gsm_buff, 10000));
-	}
-	if (*ret > 0)
-		k++;
-	else {
-		if (_tout_cnt > 10) {
-			PT_WAIT_THREAD(pt, PT_restart(&child_pt, ret));
-			_tout_cnt = 0;
+	static uint8_t len;
+	static struct pt child_pt;
+	static char k;
+	PT_BEGIN(pt);
+	//if (!CONN_get_flag(CONN_NETWORK))
+	//        len = GPRS_INIT_NONTWR_LEN;
+	//else
+	len = GPRS_INIT_LEN;
+	k = 0;
+	while (k < len) { 	
+		if (k == GPRS_INIT_ATTACH_CMD)
+			GSM_set_timeout(50);
+		*ret = 0;
+		get_from_flash(&(gprs_init_string_table[k]), _gsm_buff);
+		if (k != (len-1)) {
+			PT_WAIT_THREAD(pt, PT_send_recv_confirm(&child_pt, ret, _gsm_buff, "OK", 30000));
+		} else {
+			PT_WAIT_THREAD(pt, PT_send_recv(&child_pt, ret, _gsm_buff, 10000));
 		}
+		if (*ret > 0)
+			k++;
+		else {
+			if (_tout_cnt > 10) {
+				DEBUG_LOG("GPRS restart");
+				PT_WAIT_THREAD(pt, PT_restart(&child_pt, ret));
+				_tout_cnt = 0;
+			}
+		}
+		if (k == GPRS_INIT_ATTACH_CMD)
+			GSM_set_timeout(25);
 	}
-	if (k == GPRS_INIT_ATTACH_CMD)
-		GSM_set_timeout(25);
-}
-GSM_set_timeout(10);
-PT_END(pt);
+	GSM_set_timeout(10);
+	PT_END(pt);
 }
 
 int DLGSM::PT_GSM_event_handler(struct pt *pt, char *ret) {
@@ -718,6 +723,7 @@ int DLGSM::PT_pwr_on(struct pt *pt) {
 	static struct pt child_pt;
 	char ret;
 	PT_BEGIN(pt);
+	DEBUG_LOG("GSM power on");
 	pinMode(GSM_PWR, OUTPUT);
         if (!CONN_get_flag(CONN_PWR)) {
 		digitalWrite(GSM_PWR, LOW);
@@ -742,6 +748,7 @@ int DLGSM::PT_pwr_off(struct pt *pt, uint8_t force) {
 	static uint32_t ts;
 	char ret;
 	PT_BEGIN(pt);
+	DEBUG_LOG("GSM power off");
 	pinMode(GSM_PWR, OUTPUT);
         if (CONN_get_flag(CONN_PWR) || force) {
 		digitalWrite(GSM_PWR, LOW);
@@ -774,6 +781,7 @@ int DLGSM::PT_restart(struct pt *pt, char *ret) {
 	PT_BEGIN(pt);
         u = 0;                
 	while (u < 3) {
+		_gsmserial.flush();
         	PT_WAIT_THREAD(pt, PT_send_recv_confirm(&child_pt, &iret, "AT\r\n", "OK", 1000));
                 if (iret > 0) {
         		PT_WAIT_THREAD(pt, PT_pwr_off(&child_pt, 1));
@@ -844,7 +852,7 @@ void DLGSM::pwr_on() {
 #else
 		delay(1000);
 #endif
-		pinMode(GSM_PWR, INPUT);
+		digitalWrite(GSM_PWR, HIGH);
 #ifdef USE_PT
 #else
 		delay(1000);
@@ -868,7 +876,7 @@ void DLGSM::pwr_off(uint8_t force) {
 #else
      		delay(1000);
 #endif
-        	pinMode(GSM_PWR, INPUT);
+        	digitalWrite(GSM_PWR, HIGH);
 #ifdef USE_PT
 #else
 		delay(1000);
@@ -928,13 +936,9 @@ char* DLGSM::GSM_get_ci() {
 uint8_t DLGSM::GSM_init() {
 	//pwr_on();
 	wdt_reset();
-#ifndef USE_PT
 	delay(2000); // Wait 3s for module to stabilize
-#endif
 	for(int k=0;k<GSM_INIT_LEN;k++) {
-#ifdef WATCHDOG
 		wdt_reset();
-#endif
 		get_from_flash(&(gsm_init_string_table[k]), _gsm_buff);
 		GSM_send(_gsm_buff);
 		_gsm_ret = GSM_process("OK");	

@@ -4,7 +4,7 @@ TARGET=programmer
 #TARGET=bandgap_measure
 #TARGET=bandgap
 #TARGET=deepsleep
-DL_BAUD=19200
+DL_BAUD=57600
 MCU=atmega328p
 F_CPU=16000000
 FORMAT=ihex
@@ -20,7 +20,7 @@ AVRDUDE_BIN=$(ARDUINO_DIR)/hardware/tools/avrdude
 #AVRDUDE_BIN=/usr/local/bin/avrdude
 AVRDUDE_PROGRAMMER=arduino #stk500v1
 #AVRDUDE_PORT=/dev/ttyUSB0
-AVRDUDE_PORT=/dev/ttyACM4
+AVRDUDE_PORT=/dev/ttyACM3
 AVRDUDE_CONF=$(ARDUINO_DIR)/hardware/tools/avrdude.conf
 #AVRDUDE_CONF=/usr/local/etc/avrdude.conf
 
@@ -84,7 +84,7 @@ SRC=$(ARDUINO_SRC)
 
 # Programming with avrdude
 AVRDUDE_WRITE_FLASH=-e -U flash:w:$(TARGET).hex:i
-AVRDUDE_FLAGS=-C $(AVRDUDE_CONF) -v -v -v -p $(MCU) -c $(AVRDUDE_PROGRAMMER) -P $(AVRDUDE_PORT) -b $(UPLOAD_RATE)
+AVRDUDE_FLAGS=-C $(AVRDUDE_CONF) -v -v -v -v -v -p $(MCU) -c $(AVRDUDE_PROGRAMMER) -P $(AVRDUDE_PORT) -b $(UPLOAD_RATE)
 
 # Program settings
 CC=avr-gcc

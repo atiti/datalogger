@@ -65,6 +65,15 @@ DHT22 myDHT22(DHT22_PIN);
 	_cons_serial.println(v); \
 	}
 
+#define DEBUG_LOG(v) { \
+	_cons_serial.print(__FILE__); \
+	_cons_serial.print(":"); \
+	_cons_serial.print(__LINE__); \
+	_cons_serial.print(" "); \
+	LOG(v); \
+	}
+	
+
 /*   ============ The variables below are for editing at your own risk! =========== */
 
 DLConfig cfg;
@@ -91,7 +100,7 @@ static enum gsm_states requested_state = gsm_idle;
 DLHTTP http;
 DLFileUpload fup;
 
-DLSD sd(SPI_HALF_SPEED,4);
+DLSD sd(SPI_FULL_SPEED,4);
 
 // IO setup
 DLMeasure measure;
@@ -118,6 +127,11 @@ static struct pt comm_child_pt;
 /* System thread */
 static time_t dl_start_time = 0;
 static char led_touts[5] = {10, 50, 100, 150, 200};
+
+static uint8_t Sd_rate[5] = {SPI_FULL_SPEED, SPI_HALF_SPEED,
+			     SPI_QUARTER_SPEED, SPI_EIGHTH_SPEED,
+			     SPI_SIXTEENTH_SPEED};			    
+
 
 /* Communication thread */
 static int u = 0;
@@ -148,7 +162,8 @@ void sys_log_message(char *msg) {
 	static int sd_error = 0;
 	long filesize;
 	bool write_error;
-	Serial.print(msg);
+	DEBUG_LOG(msg);
+	//Serial.print(msg);
 	if (sd.is_available() < 0)
 		sd.init();
         filesize = sd.open(SYSLOG, O_RDWR | O_CREAT | O_APPEND);
@@ -180,11 +195,6 @@ void ext_wdt_reset() {
 	delay(10);
 	digitalWrite(WATCHDOG_PIN, HIGH);
 }
-/*
-ISR(TIMER1_COMPA_vect) {
-	UDR0 = '*';
-}
-*/
 
 void setup() {
 	int ret = 0;
@@ -225,6 +235,7 @@ void setup() {
 	_cons_serial.println(memory_test());
         ext_wdt_reset();
 
+	DEBUG_LOG("RTC init");
 	wdt_enable(WDTO_8S); 
 	setSyncProvider(RTC.get); // Setup time provider to RTC
 	if(timeStatus()!= timeSet) {
@@ -233,47 +244,56 @@ void setup() {
 		get_from_flash_P(PSTR("RTC ok!"), log_buff);
 	}
 	_cons_serial.println(log_buff);
+	_cons_serial.println("h");
         setTime(RTC.get());
+	_cons_serial.println("i");
 	ext_wdt_reset();
 	dl_start_time = now();
 	wdt_reset();
 	wdt_disable();
 
+	DEBUG_LOG("GSM init");
   	// Initialize GSM
   	gsm.init(gsm_buff, GSM_BUFF_SIZE, 5);
-  	gsm.debug(0);
+  	gsm.debug(1);
 
+	DEBUG_LOG("HTTP init");
 	// Initialize HTTP
 	http.init(gsm_buff, &gsm);
         ext_wdt_reset();
 
+	DEBUG_LOG("SD init");
 	// Initialize SD
 	sd.debug(0);
 	cdown = 0;
 	while (ret != 1) { // No debugging
-        	ret = sd.init();
-        	if (ret == 1) {
+        	sd.setRate(Sd_rate[cdown]);
+		ret = sd.init();
+        	DEBUG_LOG("SD i");
+		if (ret == 1) {
                 	get_from_flash_P(PSTR("SD ok!"), log_buff);
 			_cons_serial.println(log_buff);
+			break;
 		} else {
 			sd.error();
-			sd.reset();
 		}
 		led = !led;
 		digitalWrite(STATUS_LED_PIN, led);
 	        ext_wdt_reset();
         	delay(200);
 		cdown++;
-		if (cdown == 10)
+		if (cdown == 5)
 			reboot();
-
+		DEBUG_LOG("Iterating");
 	}
         ext_wdt_reset();
 
+	DEBUG_LOG("Measure init");
 	measure.init(); // Initialize IO with buffers
 	//analog.set_int_fun(int_routine); // Set up the interrupt handler for events
 	measure.debug(1); // Turn on analog debug
 	
+	DEBUG_LOG("Config init");
 	// Config file loading
 	cfg.init(&sd, &measure, log_buff, LOG_BUFF_SIZE);
 
@@ -286,8 +306,8 @@ void setup() {
 
 	//config->http_status_time = 99999;
 	//config->http_upload_time = 99999;
-	//config->measure_time = 10;
-	//config->sampling_rate = 5;
+	config->measure_time = 10;
+	config->sampling_rate = 5;
 
 	config->num_samples = config->sampling_rate * config->measure_time;
 	config->sampling_delay = 1000 / config->sampling_rate;
@@ -300,6 +320,7 @@ void setup() {
 
         ext_wdt_reset();
 
+	DEBUG_LOG("File Upload init");
 	// File upload init, depends on: config, sd, http
 	fup.init(config, &sd, &http, tmp_buff, TMP_BUFF_SIZE); 
 
@@ -312,6 +333,7 @@ void setup() {
 	digitalWrite(8, HIGH);
 	digitalWrite(10, HIGH);
 
+	DEBUG_LOG("WDT init");
 	// Finally enable our internal watchdog
 	wdt_enable(WDTO_8S); 
         ext_wdt_reset();
@@ -540,6 +562,7 @@ static int protothread_comm(struct pt *pt, int interval) {
 	timestamp = millis();
 	u = 0;
 	while (1) {
+		DEBUG_LOG(gsm_curr_state);
 		if (gsm_curr_state == gsm_init_poff) {
 			timestamp = millis();
 //			PT_WAIT_THREAD(pt, gsm.PT_pwr_on(&comm_inside_pt));
@@ -709,8 +732,8 @@ static int protothread_comm(struct pt *pt, int interval) {
 						fmtDouble((double)snap.std_dev, 1, smallbuff, 12);
 						strcat(tmp_buff, smallbuff);
 					}
+					strcat(tmp_buff, "\n");
 				}
-				strcat(tmp_buff, "\n");
 			}
 			Serial.println(tmp_buff);
 			PT_WAIT_THREAD(pt, gsm.PT_SMS_send(&comm_inside_pt, &ret, sms->number, tmp_buff, strlen(tmp_buff)));

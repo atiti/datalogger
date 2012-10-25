@@ -181,6 +181,10 @@ uint8_t DLConfig::load() {
 			}
 		}
 		_sd->rewind(CONFIG);
+		for(i=0;i<NUM_IO;i++) {
+			_measure->set_pin(i, IO_OFF);
+			_epc.AOD[i] = IO_OFF;
+		}
 		int rv = 0;
 		do {
 			rv = _sd->read(CONFIG, _buff, _buff_size, '\n');

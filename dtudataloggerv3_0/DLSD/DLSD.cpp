@@ -287,6 +287,11 @@ bool DLSD::exists(char *fname) {
 	return _card.exists(fname);	
 }
 
+bool DLSD::setRate(uint8_t rate) {
+	Sd2Card *c = _card.card();
+	return c->setSckRate(rate);
+}
+
 uint8_t DLSD::copy(char *src, char *dst) {
   char buf[512];
   SdFile file1, file2;

@@ -49,6 +49,7 @@ class DLSD
 		void rewind(uint8_t n);
 		bool seek(uint8_t n, uint32_t pos);
 		bool seekend(uint8_t n);
+		bool setRate(uint8_t rate);
 		bool exists(char *fname);
 		uint8_t copy(char *src, char *dst);
 	private:

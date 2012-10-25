@@ -10,6 +10,23 @@
 
 #define USE_PT
 
+#define _cons_serial Serial
+
+// Logging macro, can be disabled on production
+#define LOG(v) {  \
+        _cons_serial.print(millis()); \
+        _cons_serial.print(": "); \
+        _cons_serial.println(v); \
+        }
+
+#define DEBUG_LOG(v) { \
+        _cons_serial.print(__FILE__); \
+        _cons_serial.print(":"); \
+        _cons_serial.print(__LINE__); \
+        _cons_serial.print(" "); \
+        LOG(v); \
+        }
+
 
 #ifndef cbi
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
